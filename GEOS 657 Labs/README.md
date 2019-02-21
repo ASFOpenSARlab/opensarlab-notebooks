@@ -1,1 +1,1 @@
-The notebooks in this directory are designed to run a specfic notebook servers designed by ASF and hosted in ASF's AWS account. Various commands (including AWS calls) within these notebooks could fail outside of the specfied enviroment.  
+The notebooks in this directory are designed to run a specfic notebook servers designed by ASF and hosted in ASF's AWS account. Various commands (including AWS calls) within these notebooks could fail outside of the specfied enviroment.

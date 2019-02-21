@@ -20,5 +20,5 @@ Most of the notebooks contained in this repo are built to be ran on notebook ser
 - bokeh 1.0.4  https://bokeh.pydata.org/en/latest/
 - gdal 2.4.0  https://www.gdal.org/
 - matplotlib 3.0.2  https://matplotlib.org/contents.html
-- gmt 5.4.5  http://gmt-tutorials.org/en/
+- gmt 5.4.5  http://gmt.soest.hawaii.edu/projects/gmt/wiki/Documentation
 - pandas 0.23.0  http://pandas.pydata.org/pandas-docs/version/0.23/
