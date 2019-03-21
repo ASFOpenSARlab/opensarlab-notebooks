@@ -10,7 +10,7 @@ Specific directories include notebooks for labs used in Franz Meyer's GEOS 657 _
 To see what data is possible to manipulate and analyze, visit https://vertex.daac.asf.alaska.edu.
 
 
-Most of the notebooks contained in this repo are built to be ran on notebook servers with specific software installed:
+Many of the notebooks contained in this repo are built to be ran on notebook servers with specific software installed:
 
 - Python 3.6  https://docs.python.org/3.6/
 - ASF MapReady  https://github.com/asfadmin/ASF_MapReady
