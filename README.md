@@ -18,7 +18,6 @@ The following is a non-exhaustive list of installed commonly used python and non
 - scipy 1.2.1  https://docs.scipy.org/doc/scipy/reference/
 - bokeh 1.0.4  https://bokeh.pydata.org/en/latest/
 - matplotlib 3.0.3  https://matplotlib.org/contents.html
-- gmt 5.4.5  http://gmt.soest.hawaii.edu/projects/gmt/wiki/Documentation
 - pandas 0.23.0  http://pandas.pydata.org/pandas-docs/version/0.23/
 - asf-hyp3 3.0.2  https://pypi.org/project/asf-hyp3/
 - tensorflow 1.13.1 (non-gpu) https://www.tensorflow.org/
