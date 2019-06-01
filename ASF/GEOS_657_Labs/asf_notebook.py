@@ -14,17 +14,18 @@ def pathExists(path):
         print(f"Invalid Path: {path}")
         return False
 
+
 # get_vertex_granule_info()
 # Takes a string granule name and int data level, and returns the granule info as json.<br><br>
 # preconditions: 
 # Requires AWS Vertex API authentification.
 # Requires a valid granule name.
-# Valid data levels are 0 for level-0 and 1 for level-1.
-def get_vertex_granule_info(granule_name, data_level):
+# Granule and processing level must match.
+def get_vertex_granule_info(granule_name, processing_level):
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     response = requests.post(
         vertex_API_URL, 
-        params = [('granule_list', granule_name), ('output', 'json')]
+        params = [('granule_list', granule_name), ('output', 'json'), ('processingLevel', processing_level)]
     )
     if response.status_code == 401:
         pwd = getpass('Password for {}: '.format(username))
@@ -34,21 +35,21 @@ def get_vertex_granule_info(granule_name, data_level):
             stream=True, 
             auth=(username,pwd)
         )
-    if data_level == 0 or data_level == 1:
-        json_response = response.json()[0][data_level]
+    if response.json()[0]:
+        json_response = response.json()[0][0]
+        return json_response
     else:
-        print("Invalid data_level argument.\nPass 0 for level-0 data or 1 for level-1 data.")
-        return
-    return json_response
+        print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
+
 
 # download_ASF_granule()
 # Takes a string granule name and int data level, then downloads the associated granule and returns its file name.<br><br>
 # preconditions:
 # Requires AWS Vertex API authentification.
 # Requires a valid granule name.
-# Valid data levels are 0 for level-0 and 1 for level-1.
-def download_ASF_granule(granule_name, data_level):
-    vertex_info = get_vertex_granule_info(granule_name, data_level)
+# Granule and processing level must match.
+def download_ASF_granule(granule_name, processing_level):
+    vertex_info = get_vertex_granule_info(granule_name, processing_level)
     url = vertex_info["downloadUrl"]
     local_filename = vertex_info["fileName"]
     r = requests.post(url, stream=True)   # NOTE stream=True is required for chunking
