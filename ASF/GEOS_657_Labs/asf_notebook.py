@@ -1,11 +1,13 @@
 import os # for chdir, getcwd, path.exists 
+import re
 import time # for perf_counter
 import requests # for post
 from getpass import getpass
 import json # for json
-import zipfile # for extractall, BadZipFile
+import zipfile # for extractall, ZipFile, BadZipFile
 
 
+# path_exists()
 # Takes a string path, returns true if exists or 
 # prints error message and returns false if it doesn't.
 def path_exists(path):
@@ -15,16 +17,42 @@ def path_exists(path):
         print(f"Invalid Path: {path}")
         return False
 
+
+# download()
+# Takes a filename and get or post request, then downloads the file while outputting a download status bar.
+# Preconditions:
+# - filename must be valid
+def download(filename, request):
+    with open(filename, 'wb') as f:
+        start = time.perf_counter()
+        if request is None:
+            f.write(request.content)
+        else:
+            total_length = int(request.headers.get('content-length'))
+            dl = 0
+            for chunk in request.iter_content(chunk_size=1024*1024):
+                dl += len(chunk)
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+                    done = int(50 * dl / int(total_length))
+                    print("\r[%s%s] %s bps, %s%%    " % ('=' * done, ' ' * (50-done), dl//(time.perf_counter() - start), int((100*dl)/total_length)), end='\r', flush=True)    
     
+
+# ASF_unzip()
+# Takes a destination directory and file path.
+# If file is a valid zip, it extracts all to the destination directory.
+# Preconditions:
 def ASF_unzip(directory_path, file_path ):
-    file_name, ext = os.path.splitext(file_path)
-    if ext == ".zip":
-        print(f"Extracting: {file_path}")
-        try:
-            zipfile.ZipFile(file_path).extractall(directory_path)
-        except zipfile.Zipfile.BadZipFile:
-            print(f"Zipfile Error.")
-        return
+    if path_exists(directory_path):
+        file_name, ext = os.path.splitext(file_path)
+        if ext == ".zip":
+            print(f"Extracting: {file_path}")
+            try:
+                zipfile.ZipFile(file_path).extractall(directory_path)
+            except zipfile.BadZipFile:
+                print(f"Zipfile Error.")
+            return
     
 
 #########################
@@ -78,26 +106,14 @@ def download_ASF_granule(granule_name, processing_level):
             print(f"{local_filename} is already present in current working directory.")
             return local_filename
     print(f"Downloading {url}")
-    start = time.perf_counter()
-    with open(local_filename, 'wb') as f:
-        if r is None:
-            f.write(r.content)
-        else:
-            dl = 0
-            for chunk in r.iter_content(chunk_size=1024*1024):     
-                dl += len(chunk)
-                if chunk: # filter out keep-alive new chunks                   
-                    f.write(chunk)
-                    f.flush()
-                    done = int(50 * dl / int(total_length))
-                    print("\r[%s%s] %s bps, %s%%    " % ('=' * done, ' ' * (50-done), dl//(time.perf_counter() - start), int((100*dl)/total_length)), end='\r', flush=True)    
-        if os.stat(local_filename).st_size < total_length:
-            print('\nDownload failed!\n')
-            return
-        else:
-            print('\nDone\n')
-            return local_filename
-        
+    download(local_filename, r)
+    if os.stat(local_filename).st_size < total_length:
+        print('\nDownload failed!\n')
+        return
+    else:
+        print('\nDone\n')
+        return local_filename
+
 
 #######################
 #  Hyp3 API Functions #
@@ -108,7 +124,7 @@ def download_ASF_granule(granule_name, processing_level):
 # Returns None if there are no enabled subscriptions associated with Hyp3 account.
 # precondition: must already be logged into hyp3
 def get_hyp3_subscriptions(hyp3_api_object):
-    subscriptions = hyp3_api.get_subscriptions(enabled=True)
+    subscriptions = hyp3_api_object.get_subscriptions(enabled=True)
     if not subscriptions:
         print("There are no subscriptions associated with this Hyp3 account.")
     return subscriptions
@@ -142,6 +158,7 @@ def pick_hyp3_subscription(subscriptions):
                    
 # download_hyp3_products()
 # Takes a Hyp3 API object and a destination path.
+# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription.                        
 # preconditions: 
 # -must already be logged into hyp3
 # -path must be valid                          
@@ -149,8 +166,8 @@ def download_hyp3_products(hyp3_api_object, path):
     subscriptions = get_hyp3_subscriptions(hyp3_api_object)
     subscription_id = pick_hyp3_subscription(subscriptions)
     if subscription_id:
-        products = hyp3_api.get_products(sub_id=subscription_id)
-        if path_exists(products_path):
+        products = hyp3_api_object.get_products(sub_id=subscription_id)
+        if path_exists(path):
             for p in products:
                 url = p['url']
                 _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
@@ -159,21 +176,16 @@ def download_hyp3_products(hyp3_api_object, path):
                 if not os.path.exists(filename): # if not already present, we need to download and unzip products
                     print(f"\n{product} is not present.\nDownloading from {url}")
                     r = requests.get(url, stream=True)
-                    total_length = int(r.headers.get('content-length'))
-                    with open(filename, 'wb') as f:
-                        start = time.perf_counter()
-                        dl = 0
-                        for chunk in r.iter_content(chunk_size=1024*1024):
-                            dl += len(chunk)
-                            if chunk:
-                                f.write(chunk)
-                                f.flush()
-                                done = int(50 * dl / int(total_length))
-                                print("\r[%s%s] %s bps, %s%%    " % ('=' * done, ' ' * (50-done), dl//(time.perf_counter() - start), int((100*dl)/total_length)), end='\r', flush=True)    
-            print(f"\n")
-            os.rename(filename, f"{filename}.zip")
-            filename = f"{filename}.zip"
-            ASF_unzip(path, filename)
-            os.remove(filename)
-            print(f"\nDone.")                       
+                    download(filename, r)
+                    print(f"\n")
+                    os.rename(filename, f"{filename}.zip")
+                    filename = f"{filename}.zip"
+                    ASF_unzip(path, filename)
+                    os.remove(filename)
+                    print(f"\nDone.")
+                else:
+                    print(f"{filename} already exists.")          
                         
+
+                            
+
