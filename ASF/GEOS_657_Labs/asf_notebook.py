@@ -5,6 +5,8 @@ import requests # for post
 from getpass import getpass
 import json # for json
 import zipfile # for extractall, ZipFile, BadZipFile
+from IPython.display import clear_output
+from asf_hyp3 import API # for get_products, get_subscriptions, login
 
 
 # path_exists()
@@ -17,9 +19,22 @@ def path_exists(path):
         print(f"Invalid Path: {path}")
         return False
 
+# new_directory()
+# Takes a path for a new or existing directory. Creates directory
+# and sub-directories if not already present.
+def new_directory(path):
+    if os.path.exists(path):
+        print(f"{path} already exists.")
+    else:
+        os.makedirs(path)
+        print(f"Created: {path}")
+    if not os.path.exists(path):
+        print(f"Failed to create path!")
+    
 
 # download()
-# Takes a filename and get or post request, then downloads the file while outputting a download status bar.
+# Takes a filename and get or post request, then downloads the file
+# while outputting a download status bar.
 # Preconditions:
 # - filename must be valid
 def download(filename, request):
@@ -146,19 +161,20 @@ def pick_hyp3_subscription(subscriptions):
                 try:
                     subscription_id = int(input())
                 except ValueError:
-                    print("Invalid ID\nPick a subscription ID from the above list.")
                     clear_output()
+                    print("Invalid ID\nPick a subscription ID from the above list.")
             if subscription_id in subscription_ids: 
                 break
             else:
-                print("Invalid ID\nPick a subscription ID from the above list.")
+                print("Invalid ID\nPick a valid subscription ID from the list.\n")
                 clear_output()
-        return subscription_id
+        return subscription_id                        
+                     
                           
-                   
+
 # download_hyp3_products()
 # Takes a Hyp3 API object and a destination path.
-# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription.                        
+# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
 # preconditions: 
 # -must already be logged into hyp3
 # -path must be valid                          
@@ -166,8 +182,17 @@ def download_hyp3_products(hyp3_api_object, path):
     subscriptions = get_hyp3_subscriptions(hyp3_api_object)
     subscription_id = pick_hyp3_subscription(subscriptions)
     if subscription_id:
-        products = hyp3_api_object.get_products(sub_id=subscription_id)
-        if path_exists(path):
+        products = []
+        page_count = 0
+        while True:
+            product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
+            page_count += 1
+            if not product_page:
+                break
+            for product in product_page:
+                products.append(product) 
+        if path_exists(path):             
+            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
             for p in products:
                 url = p['url']
                 _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
@@ -184,8 +209,51 @@ def download_hyp3_products(hyp3_api_object, path):
                     os.remove(filename)
                     print(f"\nDone.")
                 else:
-                    print(f"{filename} already exists.")          
-                        
-
-                            
-
+                    print(f"{filename} already exists.")
+        return subscription_id
+                          
+                          
+                          
+# download_hyp3_products()
+# Takes a Hyp3 API object and a destination path.
+# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
+# preconditions: 
+# -must already be logged into hyp3
+# -path must be valid                          
+def download_hyp3_products_v2(hyp3_api_object, path, count):
+    subscriptions = get_hyp3_subscriptions(hyp3_api_object)
+    subscription_id = pick_hyp3_subscription(subscriptions)
+    if subscription_id:
+        products = []
+        page_count = 0
+        while True:
+            product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
+            page_count += 1
+            if not product_page:
+                break
+            for product in product_page:
+                products.append(product) 
+        if path_exists(path):             
+            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
+            for p in range (0, count): # 
+                url = products[p]['url']
+                _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
+                product = _match.group(1)
+                filename = f"{path}/{product}"
+                if not os.path.exists(filename): # if not already present, we need to download and unzip products
+                    print(f"\n{product} is not present.\nDownloading from {url}")
+                    r = requests.get(url, stream=True)
+                    download(filename, r)
+                    print(f"\n")
+                    os.rename(filename, f"{filename}.zip")
+                    filename = f"{filename}.zip"
+                    ASF_unzip(path, filename)
+                    os.remove(filename)
+                    print(f"\nDone.")
+                else:
+                    print(f"{filename} already exists.")
+        return subscription_id
+                          
+                          
+                          
+                          
