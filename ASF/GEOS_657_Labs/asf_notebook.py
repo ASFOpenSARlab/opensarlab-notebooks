@@ -1,12 +1,15 @@
 import os # for chdir, getcwd, path.exists 
 import re
 import time # for perf_counter
-import requests # for post
+import requests # for post, get
 from getpass import getpass
 import json # for json
 import zipfile # for extractall, ZipFile, BadZipFile
 from IPython.display import clear_output
 from asf_hyp3 import API # for get_products, get_subscriptions, login
+from getpass import getpass # used to input URS creds and add to .netrc
+import gdal # for Open
+import numpy as np
 
 
 # path_exists()
@@ -58,7 +61,7 @@ def download(filename, request):
 # Takes a destination directory and file path.
 # If file is a valid zip, it extracts all to the destination directory.
 # Preconditions:
-def ASF_unzip(directory_path, file_path ):
+def ASF_unzip(directory_path, file_path):
     if path_exists(directory_path):
         file_name, ext = os.path.splitext(file_path)
         if ext == ".zip":
@@ -69,7 +72,41 @@ def ASF_unzip(directory_path, file_path ):
                 print(f"Zipfile Error.")
             return
     
+    
+def remove_nan_subsets(path, tiff_paths):
+    count = 0
+    for tiff in tiff_paths:
+        raster = gdal.Open(f"{path}{tiff}")
+        if raster:
+            band = raster.ReadAsArray()
+            if not np.amax(band):
+                count += 1
+                nan_path = f"{path}{tiff}"
+                os.remove(nan_path)
+    print(f"GeoTiffs Examined: {len(tiff_paths)}")
+    print(f"GeoTiffs Removed:  {count}")
 
+#####################
+#  Earth Data Login #
+#####################
+
+def earthdata_login():
+    print(f"Enter your NASA EarthData username:")
+    username = input()
+    print(f"Enter your password:")
+    password = getpass()
+    
+    filename="/home/jovyan/.netrc"
+    with open(filename, 'w+') as f:
+        f.write(f"machine urs.earthdata.nasa.gov login {username} password {password}\n")
+    
+    api = API(username)
+    api.login(password)
+    return api
+
+
+
+    
 #########################
 #  Vertex API Functions #
 #########################
@@ -170,8 +207,50 @@ def pick_hyp3_subscription(subscriptions):
                 clear_output()
         return subscription_id                        
                      
+                    
                           
-
+# download_hyp3_products()
+# Takes a Hyp3 API object and a destination path.
+# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
+# preconditions: 
+# -must already be logged into hyp3
+# -path must be valid                          
+def download_hyp3_products_v2(hyp3_api_object, path, count):
+    subscriptions = get_hyp3_subscriptions(hyp3_api_object)
+    subscription_id = pick_hyp3_subscription(subscriptions)
+    if subscription_id:
+        products = []
+        page_count = 0
+        while True:
+            product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
+            page_count += 1
+            if not product_page:
+                break
+            for product in product_page:
+                products.append(product) 
+        if path_exists(path):             
+            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
+            for p in range (0, count): # 
+                url = products[p]['url']
+                _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
+                product = _match.group(1)
+                filename = f"{path}/{product}"
+                if not os.path.exists(filename): # if not already present, we need to download and unzip products
+                    print(f"\n{product} is not present.\nDownloading from {url}")
+                    r = requests.get(url, stream=True)
+                    download(filename, r)
+                    print(f"\n")
+                    os.rename(filename, f"{filename}.zip")
+                    filename = f"{filename}.zip"
+                    ASF_unzip(path, filename)
+                    os.remove(filename)
+                    print(f"\nDone.")
+                else:
+                    print(f"{filename} already exists.")
+        return subscription_id
+                          
+                                         
+                          
 # download_hyp3_products()
 # Takes a Hyp3 API object and a destination path.
 # Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
@@ -214,46 +293,5 @@ def download_hyp3_products(hyp3_api_object, path):
                           
                           
                           
-# download_hyp3_products()
-# Takes a Hyp3 API object and a destination path.
-# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
-# preconditions: 
-# -must already be logged into hyp3
-# -path must be valid                          
-def download_hyp3_products_v2(hyp3_api_object, path, count):
-    subscriptions = get_hyp3_subscriptions(hyp3_api_object)
-    subscription_id = pick_hyp3_subscription(subscriptions)
-    if subscription_id:
-        products = []
-        page_count = 0
-        while True:
-            product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
-            page_count += 1
-            if not product_page:
-                break
-            for product in product_page:
-                products.append(product) 
-        if path_exists(path):             
-            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
-            for p in range (0, count): # 
-                url = products[p]['url']
-                _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
-                product = _match.group(1)
-                filename = f"{path}/{product}"
-                if not os.path.exists(filename): # if not already present, we need to download and unzip products
-                    print(f"\n{product} is not present.\nDownloading from {url}")
-                    r = requests.get(url, stream=True)
-                    download(filename, r)
-                    print(f"\n")
-                    os.rename(filename, f"{filename}.zip")
-                    filename = f"{filename}.zip"
-                    ASF_unzip(path, filename)
-                    os.remove(filename)
-                    print(f"\nDone.")
-                else:
-                    print(f"{filename} already exists.")
-        return subscription_id
-                          
-                          
-                          
+
                           
