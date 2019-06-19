@@ -71,20 +71,30 @@ def ASF_unzip(directory_path, file_path):
             except zipfile.BadZipFile:
                 print(f"Zipfile Error.")
             return
+   
     
     
 def remove_nan_subsets(path, tiff_paths):
-    count = 0
-    for tiff in tiff_paths:
-        raster = gdal.Open(f"{path}{tiff}")
-        if raster:
-            band = raster.ReadAsArray()
-            if not np.amax(band):
-                count += 1
-                nan_path = f"{path}{tiff}"
-                os.remove(nan_path)
-    print(f"GeoTiffs Examined: {len(tiff_paths)}")
-    print(f"GeoTiffs Removed:  {count}")
+    if tiff_paths:
+        removed = 0
+        zero_totals = []
+        for tiff in tiff_paths:
+            raster = gdal.Open(f"{path}{tiff}")
+            if raster:
+                band = raster.ReadAsArray()
+                zero_count = np.size(band) - np.count_nonzero(band)
+                zero_totals.append(zero_count)
+        least_zeros = min(zero_totals)
+        for i in range (0, len(zero_totals)):
+            if zero_totals[i] > least_zeros + int(least_zeros*0.05):
+                os.remove(f"{path}{tiff_paths[i]}")
+                removed += 1
+        print(f"GeoTiffs Examined: {len(tiff_paths)}")
+        print(f"GeoTiffs Removed:  {removed}")    
+    else:
+        print(f"Error: No tiffs were passed to remove_nan_subsets")
+
+        
 
 #####################
 #  Earth Data Login #
@@ -127,7 +137,7 @@ def get_vertex_granule_info(granule_name, processing_level):
         pwd = getpass('Password for {}: '.format(username))
         response = requests.post(
             vertex_API_URL, 
-            params = [('granule_list', granule_name), ('output', 'json')], 
+            params = [('granule_list', granule_name), ('output', 'json'), ], 
             stream=True, 
             auth=(username,pwd)
         )
@@ -263,16 +273,19 @@ def download_hyp3_products(hyp3_api_object, path):
     if subscription_id:
         products = []
         page_count = 0
+        product_count = 1
         while True:
             product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
             page_count += 1
             if not product_page:
                 break
             for product in product_page:
-                products.append(product) 
+                products.append(product)
         if path_exists(path):             
-            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
+            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}")
             for p in products:
+                print(f"\nProduct Number {product_count}:")
+                product_count += 1
                 url = p['url']
                 _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
                 product = _match.group(1)
@@ -291,7 +304,4 @@ def download_hyp3_products(hyp3_api_object, path):
                     print(f"{filename} already exists.")
         return subscription_id
                           
-                          
-                          
-
                           
