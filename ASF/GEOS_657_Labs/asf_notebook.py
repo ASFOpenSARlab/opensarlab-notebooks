@@ -10,6 +10,7 @@ from asf_hyp3 import API # for get_products, get_subscriptions, login
 from getpass import getpass # used to input URS creds and add to .netrc
 import gdal # for Open
 import numpy as np
+import datetime
 
 
 # path_exists()
@@ -61,13 +62,13 @@ def download(filename, request):
 # Takes a destination directory and file path.
 # If file is a valid zip, it extracts all to the destination directory.
 # Preconditions:
-def ASF_unzip(directory_path, file_path):
-    if path_exists(directory_path):
+def ASF_unzip(destination, file_path):
+    if path_exists(destination):
         file_name, ext = os.path.splitext(file_path)
         if ext == ".zip":
             print(f"Extracting: {file_path}")
             try:
-                zipfile.ZipFile(file_path).extractall(directory_path)
+                zipfile.ZipFile(file_path).extractall(destination)
             except zipfile.BadZipFile:
                 print(f"Zipfile Error.")
             return
@@ -86,7 +87,7 @@ def remove_nan_subsets(path, tiff_paths):
                 zero_totals.append(zero_count)
         least_zeros = min(zero_totals)
         for i in range (0, len(zero_totals)):
-            if zero_totals[i] > least_zeros + int(least_zeros*0.05):
+            if zero_totals[i] > int(least_zeros*1.05):
                 os.remove(f"{path}{tiff_paths[i]}")
                 removed += 1
         print(f"GeoTiffs Examined: {len(tiff_paths)}")
@@ -238,6 +239,9 @@ def download_hyp3_products_v2(hyp3_api_object, path, count):
                 break
             for product in product_page:
                 products.append(product) 
+                          
+        print(products)                 
+                          
         if path_exists(path):             
             print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
             for p in range (0, count): # 
@@ -261,47 +265,115 @@ def download_hyp3_products_v2(hyp3_api_object, path, count):
                           
                                          
                           
+# Preconditions: start_date and end_date must be datetime.date objects                          
+def dates_make_sense(start_date, end_date):
+    if start_date and end_date:
+        if start_date > end_date:
+            print("Error: The start date must be prior to the end date.")
+        else:
+            return True
+    elif (start_date and not end_date) or (not start_date and end_date):
+            if not start_date:
+                print("Error: An end date was passed, but not a start date.")
+            else:
+                print("Error: A start date was passed, but not an end date.")
+            return False
+    else:
+        return True
+    
+# Preconditions: product_info must be a dictionary containing product info, as returned from the 
+# hyp3_API get_products() function.
+def get_aquisition_date_from_product_name(product_info):
+    product_name = product_info['name']
+    split_name = product_name.split('_')
+    d = split_name[4]
+    return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
+                          
+                          
+                          
+# Preconditions: product_list must be a list of dictionaries containing product info, as returned from the 
+# hyp3_API get_products() function.
+# start_date and end_date must be datetime.date objects                          
+def filter_date_range(product_list, start_date, end_date):
+    if dates_make_sense(start_date, end_date):
+        for product in product_list:
+            date = get_aquisition_date_from_product_name(product)             
+            if date < start_date or date >= end_date:
+                    product_list.remove(product)
+        return product_list
+       
+                          
+                          
+'''
+def is_ascending(granule_name): 
+    vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
+    paramaters =  [('granule_list', granule_name), ('output', 'json'), ('flightDirection', 'ASCENDING')]
+    response = requests.post(
+        vertex_API_URL, 
+        params = parameters
+    )
+    if response.status_code == 401:
+        pwd = getpass('Password for {}: '.format(username))
+        response = requests.post(
+            vertex_API_URL, 
+            params=paramaters, 
+            stream=True, 
+            auth=(username,pwd)
+        )
+    if response.json()[0]:
+        json_response = response.json()[0][0]
+    if response_json:
+        return True
+    else:
+        return False
+'''                        
+                         
 # download_hyp3_products()
 # Takes a Hyp3 API object and a destination path.
 # Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.                        
 # preconditions: 
 # -must already be logged into hyp3
 # -path must be valid                          
-def download_hyp3_products(hyp3_api_object, path):
-    subscriptions = get_hyp3_subscriptions(hyp3_api_object)
-    subscription_id = pick_hyp3_subscription(subscriptions)
-    if subscription_id:
-        products = []
-        page_count = 0
-        product_count = 1
-        while True:
-            product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)            
-            page_count += 1
-            if not product_page:
-                break
-            for product in product_page:
-                products.append(product)
-        if path_exists(path):             
-            print(f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}")
-            for p in products:
-                print(f"\nProduct Number {product_count}:")
-                product_count += 1
-                url = p['url']
-                _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
-                product = _match.group(1)
-                filename = f"{path}/{product}"
-                if not os.path.exists(filename): # if not already present, we need to download and unzip products
-                    print(f"\n{product} is not present.\nDownloading from {url}")
-                    r = requests.get(url, stream=True)
-                    download(filename, r)
-                    print(f"\n")
-                    os.rename(filename, f"{filename}.zip")
-                    filename = f"{filename}.zip"
-                    ASF_unzip(path, filename)
-                    os.remove(filename)
-                    print(f"\nDone.")
-                else:
-                    print(f"{filename} already exists.")
-        return subscription_id
+def download_hyp3_products(hyp3_api_object, destination_path, start_date=None, end_date=None, path=None):
+    if dates_make_sense(start_date, end_date):
+        subscriptions = get_hyp3_subscriptions(hyp3_api_object)
+        subscription_id = pick_hyp3_subscription(subscriptions)
+        if subscription_id:
+            products = []
+            page_count = 0
+            product_count = 1
+            while True:
+                product_page = hyp3_api_object.get_products(sub_id=subscription_id, page=page_count, page_size=100)    
+                page_count += 1
+                if not product_page:
+                    break
+                for product in product_page:
+                    products.append(product)
+            products = filter_date_range(products, start_date, end_date)
+                          
+            print(products[0])              
+                          
+            if path_exists(destination_path):
+                print(f"\n{len(products)} products are associated with the selected date range for Subscription ID: {subscription_id}")
+                for p in products:
+                    print(f"\nProduct Number {product_count}:")
+                    product_count += 1
+                    url = p['url']
+                    _match = re.match(r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
+                    product = _match.group(1)
+                    filename = f"{destination_path}/{product}"
+                    if not os.path.exists(filename): # if not already present, we need to download and unzip products
+                        print(f"\n{product} is not present.\nDownloading from {url}")
+                        r = requests.get(url, stream=True)
+                        download(filename, r)
+                        print(f"\n")
+                        os.rename(filename, f"{filename}.zip")
+                        filename = f"{filename}.zip"
+                        ASF_unzip(destination_path, filename)
+                        os.remove(filename)
+                        print(f"\nDone.")
+                    else:
+                        print(f"{filename} already exists.")
+            return subscription_id
                           
                           
