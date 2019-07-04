@@ -11,7 +11,10 @@ from getpass import getpass  # used to input URS creds and add to .netrc
 import gdal  # for Open
 import numpy as np
 import datetime
+import glob
 
+import subprocess              #only keep if geotiff_from_plot stays in module
+import matplotlib.pylab as plt #only keep if geotiff_from_plot stays in module
 
 # path_exists()
 # Takes a string path, returns true if exists or
@@ -87,17 +90,41 @@ def remove_nan_subsets(path, tiff_paths):
                 band = raster.ReadAsArray()
                 zero_count = np.size(band) - np.count_nonzero(band)
                 zero_totals.append(zero_count)
-        least_zeros = min(zero_totals)
-        for i in range(0, len(zero_totals)):
-            if zero_totals[i] > int(least_zeros*1.05):
-                os.remove(f"{path}{tiff_paths[i]}")
-                removed += 1
+        if zero_totals:
+            least_zeros = min(zero_totals)
+            for i in range(0, len(zero_totals)):
+                if zero_totals[i] > int(least_zeros*1.05):
+                    os.remove(f"{path}{tiff_paths[i]}")
+                    removed += 1
         print(f"GeoTiffs Examined: {len(tiff_paths)}")
         print(f"GeoTiffs Removed:  {removed}")
     else:
         print(f"Error: No tiffs were passed to remove_nan_subsets")
 
+'''
+# do not include a file extension in out_filename
+# extent must be in the form of a list: [[upper_left_x, upper_left_y], [lower_right_x, lower_right_y]]
+def geotiff_from_plot(source_image, out_filename, extent, predominate_utm, cmap=None, vmin=None, vmax=None):
+    plt.figure()
+    plt.axis('off')
+    plt.imshow(source_image, cmap=cmap, vmin=vmin, vmax=vmax)
+    temp = f"{out_filename}_temp.png"
+    
+    print(temp)
+    print(f"{out_filename}.tiff")
+    
+    plt.savefig(temp, dpi=300, transparent='true', bbox_inches='tight', pad_inches=0)
 
+    #cmd = f"gdal_translate -of Gtiff -a_ullr {extent[0][0]} {extent[0][1]} {extent[1][0]} {extent[1][1]} -a_srs EPSG:{predominate_utm} {temp} {out_filename}.tiff"
+    
+    subprocess.call([f"gdal_translate", f"-of Gtiff", f"-a_ullr {extent[0][0]} {extent[0][1]} {extent[1][0]} {extent[1][1]}", f"-a_srs EPSG:{predominate_utm}", f"{temp}", f"{out_filename}.tiff"]) 
+    #!{cmd}
+    try:
+        os.remove(temp)
+    except FileNotFoundError:
+        pass
+'''        
+        
 #####################
 #  Earth Data Login #
 #####################
@@ -280,6 +307,53 @@ def download_hyp3_products_v2(hyp3_api_object, path, count):
         return subscription_id
 
                         
+def polarization_exists(paths):
+    pth = glob.glob(paths)
+    if pth:
+        return True
+    else:
+        return False                        
+                        
+def select_RTC_polarization(process_type, base_path):
+    polarizations = []
+    if process_type == 2: # Gamma
+        if polarization_exists(f"{base_path}/*/*_VV.tif"):
+            polarizations.append('_VV')
+        if polarization_exists(f"{base_path}/*/*_VH.tif"):
+            polarizations.append('_VH')
+        if polarization_exists(f"{base_path}/*/*_HV.tif"):
+            polarizations.append('_HV')
+        if polarization_exists(f"{base_path}/*/*_HH.tif"):
+            polarizations.append('_HH')
+    elif process_type == 18: # S1TBX
+        if polarization_exists(f"{base_path}/*/*-VV.tif"):
+            polarizations.append('-VV')
+        if polarization_exists(f"{base_path}/*/*-VH.tif"):
+            polarizations.append('-VH')
+        if polarization_exists(f"{base_path}/*/*-HV.tif"):
+            polarizations.append('-HV')
+        if polarization_exists(f"{base_path}/*/*-HH.tif"):
+            polarizations.append('-HH')
+    if len(polarizations) == 1:
+        print(f"Selecting the only available polarization: {polarizations[0]}")
+        return f"{base_path}/*/*{polarizations[0]}.tif"
+    elif len(polarizations) > 1:
+        print(f"Select a polarization:")
+        for i in range(0,len(polarizations)):
+            print(f"[{i}]: {polarizations[i]}")
+        while(True):
+            user_input = input()
+            try:
+                choice = int(user_input)
+            except ValueError:
+                print(f"Please enter the number of an available polarization.")
+                continue
+            if choice > len(polarizations) or choice < 0:
+                print(f"Please enter the number of an available polarization.")
+                continue               
+            return f"{base_path}/*/*{polarizations[choice]}.tif"
+    else:
+        print(f"Error: found no available polarizations.")                       
                         
 # date_range_valid()
 # Takes a start and end date. 
@@ -299,7 +373,7 @@ def date_range_valid(start_date, end_date):
         else:
             print("Error: A start date was passed, but not an end date.")
         return False
-    else:
+    else:                
         return True
 
                         
@@ -314,8 +388,13 @@ def date_range_valid(start_date, end_date):
 def get_aquisition_date_from_product_name(product_info):
     product_name = product_info['name']
     split_name = product_name.split('_')
-    d = split_name[4]
-    return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
+    if len(split_name) == 1:
+        split_name = product_name.split('-')
+        d = split_name[1]
+        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
+    else:                    
+        d = split_name[4]
+        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
 
                         
 
@@ -350,8 +429,7 @@ def flight_direction_valid(flight_direction=None):
             print(f"Error: {flight_direction} is not a valid flight direction.")
             print(f"Valid Directions: {valid_directions}")           
             return False
-        else:
-            return True
+    return True
  
                         
                         
@@ -363,7 +441,12 @@ def flight_direction_valid(flight_direction=None):
 def product_filter(product_list, flight_direction=None, path=None):
     filtered_products = []                        
     for product in product_list:                 
-        granule_name = product['name']          
+        granule_name = product['name']
+        
+    
+        #print(product) ################################################3
+        #print(granule_name)##############################################                
+                        
         granule_name = granule_name.split('-')[0]
         vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
         parameters = [('granule_list', granule_name), ('output', 'json')]
@@ -416,12 +499,13 @@ def download_hyp3_products(hyp3_api_object, destination_path, start_date=None, e
             for product in product_page:
                 products.append(product)
         if date_range_valid(start_date, end_date) and flight_direction_valid(flight_direction):
-                       
-                        
-            products = filter_date_range(products, start_date, end_date)
-            products = product_filter(
-                products, flight_direction=flight_direction, path=path)                   
-        else:
+            if start_date:
+                products = filter_date_range(products, start_date, end_date)
+            if flight_direction:
+                products = product_filter(products, flight_direction=flight_direction)
+            if path:
+                products = product_filter(products, path=path) 
+        else:         
             return
         if path_exists(destination_path):
             print(f"\n{len(products)} products are associated with the selected date range, flight direction, and path for Subscription ID: {subscription_id}")
