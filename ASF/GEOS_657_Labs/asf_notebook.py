@@ -12,26 +12,26 @@ import gdal  # for Open
 import numpy as np
 import datetime
 import glob
-
-import subprocess              #only keep if geotiff_from_plot stays in module
-import matplotlib.pylab as plt #only keep if geotiff_from_plot stays in module
+import asf_hyp3
 
 # path_exists()
 # Takes a string path, returns true if exists or
 # prints error message and returns false if it doesn't.
 def path_exists(path):
+    assert type(path) == str, 'Error: path must be a string'
     if os.path.exists(path):
         return True
     else:
         print(f"Invalid Path: {path}")
         return False
 
+    
 # new_directory()
 # Takes a path for a new or existing directory. Creates directory
 # and sub-directories if not already present.
-
-
 def new_directory(path):
+    assert type(path) == str
+    
     if os.path.exists(path):
         print(f"{path} already exists.")
     else:
@@ -47,6 +47,8 @@ def new_directory(path):
 # Preconditions:
 # - filename must be valid
 def download(filename, request):
+    assert type(request) == requests.models.Response, 'Error: request must be a class<requests.models.Response>'
+    
     with open(filename, 'wb') as f:
         start = time.perf_counter()
         if request is None:
@@ -67,8 +69,9 @@ def download(filename, request):
 # ASF_unzip()
 # Takes a destination directory and file path.
 # If file is a valid zip, it extracts all to the destination directory.
-# Preconditions:
 def ASF_unzip(destination, file_path):
+    assert file_path.split('.')[-1] == 'zip', 'Error: file_path must be the path of a zip'
+    
     if path_exists(destination):
         file_name, ext = os.path.splitext(file_path)
         if ext == ".zip":
@@ -101,29 +104,6 @@ def remove_nan_subsets(path, tiff_paths):
     else:
         print(f"Error: No tiffs were passed to remove_nan_subsets")
 
-'''
-# do not include a file extension in out_filename
-# extent must be in the form of a list: [[upper_left_x, upper_left_y], [lower_right_x, lower_right_y]]
-def geotiff_from_plot(source_image, out_filename, extent, predominate_utm, cmap=None, vmin=None, vmax=None):
-    plt.figure()
-    plt.axis('off')
-    plt.imshow(source_image, cmap=cmap, vmin=vmin, vmax=vmax)
-    temp = f"{out_filename}_temp.png"
-    
-    print(temp)
-    print(f"{out_filename}.tiff")
-    
-    plt.savefig(temp, dpi=300, transparent='true', bbox_inches='tight', pad_inches=0)
-
-    #cmd = f"gdal_translate -of Gtiff -a_ullr {extent[0][0]} {extent[0][1]} {extent[1][0]} {extent[1][1]} -a_srs EPSG:{predominate_utm} {temp} {out_filename}.tiff"
-    
-    subprocess.call([f"gdal_translate", f"-of Gtiff", f"-a_ullr {extent[0][0]} {extent[0][1]} {extent[1][0]} {extent[1][1]}", f"-a_srs EPSG:{predominate_utm}", f"{temp}", f"{out_filename}.tiff"]) 
-    #!{cmd}
-    try:
-        os.remove(temp)
-    except FileNotFoundError:
-        pass
-'''        
         
 #####################
 #  Earth Data Login #
@@ -224,6 +204,8 @@ def download_ASF_granule(granule_name, processing_level):
 
 
 def get_hyp3_subscriptions(hyp3_api_object):
+    assert type(hyp3_api_object) == asf_hyp3.API, f"Error: get_hyp3_subscriptions was passed a {type(hyp3_api_object)}, not a asf_hyp3.API object"
+    
     subscriptions = hyp3_api_object.get_subscriptions(enabled=True)
     if not subscriptions:
         print("There are no subscriptions associated with this Hyp3 account.")
@@ -237,83 +219,40 @@ def get_hyp3_subscriptions(hyp3_api_object):
 
 
 def pick_hyp3_subscription(subscriptions):
-    if subscriptions:
-        subscription_ids = []
-        while(True):
-            subscription_id = None
-            while not subscription_id:
-                print(f"Enter a subscription ID number:")
-                for subscription in subscriptions:
-                    print(
-                        f"\nSubscription id: {subscription['id']} {subscription['name']}")
-                    subscription_ids.append(subscription['id'])
-                try:
-                    subscription_id = int(input())
-                except ValueError:
-                    clear_output()
-                    print("Invalid ID\nPick a subscription ID from the above list.")
-            if subscription_id in subscription_ids:
-                break
-            else:
-                print("Invalid ID\nPick a valid subscription ID from the list.\n")
+    assert type(subscriptions) == list, 'Error: subscriptions must be a list'
+    assert subscriptions, 'Error: There are no subscriptions in the passed list'
+    
+    subscription_ids = []
+    while(True):
+        subscription_id = None
+        while not subscription_id:
+            print(f"Enter a subscription ID number:")
+            for subscription in subscriptions:
+                print(
+                    f"\nSubscription id: {subscription['id']} {subscription['name']}")
+                subscription_ids.append(subscription['id'])
+            try:
+                subscription_id = int(input())
+            except ValueError:
                 clear_output()
-        return subscription_id
+                print("Invalid ID\nPick a subscription ID from the above list.")
+        if subscription_id in subscription_ids:
+            break
+        else:
+            print("Invalid ID\nPick a valid subscription ID from the list.\n")
+            clear_output()
+    return subscription_id
 
 
-                        
-# download_hyp3_products()
-# Takes a Hyp3 API object and a destination path.
-# Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. Returns subscription id.
-# preconditions:# -must already be logged into hyp3
-#                 -path must be valid
-                        
-                        
-def download_hyp3_products_v2(hyp3_api_object, path, count):
-    subscriptions = get_hyp3_subscriptions(hyp3_api_object)
-    subscription_id = pick_hyp3_subscription(subscriptions)
-    if subscription_id:
-        products = []
-        page_count = 0
-        while True:
-            product_page = hyp3_api_object.get_products(
-                sub_id=subscription_id, page=page_count, page_size=100)
-            page_count += 1
-            if not product_page:
-                break
-            for product in product_page:
-                products.append(product)
-        if path_exists(path):
-            print(
-                f"\n{len(products)} product/s associated with Subscription ID: {subscription_id}\n")
-            for p in range(0, count):
-                url = products[p]['url']
-                _match = re.match(
-                    r'https://hyp3-download.asf.alaska.edu/asf/data/(.*).zip', url)
-                product = _match.group(1)
-                filename = f"{path}/{product}"
-                # if not already present, we need to download and unzip products
-                if not os.path.exists(filename):
-                    print(f"\n{product} is not present.\nDownloading from {url}")
-                    r = requests.get(url, stream=True)
-                    download(filename, r)
-                    print(f"\n")
-                    os.rename(filename, f"{filename}.zip")
-                    filename = f"{filename}.zip"
-                    ASF_unzip(path, filename)
-                    os.remove(filename)
-                    print(f"\nDone.")
-                else:
-                    print(f"{filename} already exists.")
-        return subscription_id
-
-                        
+                                              
 def polarization_exists(paths):
     pth = glob.glob(paths)
     if pth:
         return True
     else:
         return False                        
-                        
+            
+'''
 def select_RTC_polarization(process_type, base_path):
     polarizations = []
     if process_type == 2: # Gamma
@@ -354,7 +293,44 @@ def select_RTC_polarization(process_type, base_path):
             return f"{base_path}/*/*{polarizations[choice]}.tif"
     else:
         print(f"Error: found no available polarizations.")                       
-                        
+'''
+                    
+def select_RTC_polarization(process_type, base_path):
+    assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
+    polarizations = []
+    if process_type == 2: # Gamma
+        separator = '_'
+    elif process_type == 18: # S1TBX
+        separator = '-'                
+    if polarization_exists(f"{base_path}/*/*{separator}VV.tif"):
+        polarizations.append(f"{separator}VV")
+    if polarization_exists(f"{base_path}/*/*{separator}VH.tif"):
+        polarizations.append(f"{separator}VH")
+    if polarization_exists(f"{base_path}/*/*{separator}HV.tif"):
+        polarizations.append(f"{separator}HV")
+    if polarization_exists(f"{base_path}/*/*{separator}HH.tif"):
+        polarizations.append(f"{separator}HH")  
+    if len(polarizations) == 1:
+        print(f"Selecting the only available polarization: {polarizations[0]}")
+        return f"{base_path}/*/*{polarizations[0]}.tif"
+    elif len(polarizations) > 1:
+        print(f"Select a polarization:")
+        for i in range(0,len(polarizations)):
+            print(f"[{i}]: {polarizations[i]}")
+        while(True):
+            user_input = input()
+            try:
+                choice = int(user_input)
+            except ValueError:
+                print(f"Please enter the number of an available polarization.")
+                continue
+            if choice > len(polarizations) or choice < 0:
+                print(f"Please enter the number of an available polarization.")
+                continue               
+            return f"{base_path}/*/*{polarizations[choice]}.tif"
+    else:
+        print(f"Error: found no available polarizations.")                       
+                                            
 # date_range_valid()
 # Takes a start and end date. 
 # Returns True if start_date <= end_date, else prints an error message and returns False.
@@ -439,40 +415,36 @@ def flight_direction_valid(flight_direction=None):
                         
                         
 def product_filter(product_list, flight_direction=None, path=None):
-    filtered_products = []                        
-    for product in product_list:                 
-        granule_name = product['name']
-        
-    
-        #print(product) ################################################3
-        #print(granule_name)##############################################                
-                        
-        granule_name = granule_name.split('-')[0]
-        vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-        parameters = [('granule_list', granule_name), ('output', 'json')]
-        if flight_direction:
-            parameters.append(('flightDirection', flight_direction))
-        if path:
-            parameters.append(('relativeOrbit', path))
-        response = requests.post(
-            vertex_API_URL,
-            params=parameters,
-            stream=True
-        )
-        if response.status_code == 401:
-            pwd = getpass('Password for {}: '.format(username))
+    if flight_direction or path:
+        filtered_products = []                        
+        for product in product_list:                 
+            granule_name = product['name']
+            granule_name = granule_name.split('-')[0]
+            vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
+            parameters = [('granule_list', granule_name), ('output', 'json')]
+            if flight_direction:
+                parameters.append(('flightDirection', flight_direction))
+            if path:
+                parameters.append(('relativeOrbit', path))
             response = requests.post(
                 vertex_API_URL,
                 params=parameters,
-                stream=True,
-                auth=(username, pwd)
-            )               
-        json_response = None
-        if response.json()[0]:
-            json_response = response.json()[0][0]
-        if json_response:           
-            filtered_products.append(product)  
-    return filtered_products  
+                stream=True
+            )
+            if response.status_code == 401:
+                pwd = getpass('Password for {}: '.format(username))
+                response = requests.post(
+                    vertex_API_URL,
+                    params=parameters,
+                    stream=True,
+                    auth=(username, pwd)
+                )               
+            json_response = None
+            if response.json()[0]:
+                json_response = response.json()[0][0]
+            if json_response:           
+                filtered_products.append(product)  
+        return filtered_products  
 
        
                         
