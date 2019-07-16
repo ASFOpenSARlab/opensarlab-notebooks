@@ -83,26 +83,22 @@ def ASF_unzip(destination, file_path):
             return
 
 
-def remove_nan_subsets(path, tiff_paths):
-    if tiff_paths:
+def remove_nan_filled_tifs(path, tiff_paths):
+    if tiff_paths: 
         removed = 0
         zero_totals = []
         for tiff in tiff_paths:
             raster = gdal.Open(f"{path}{tiff}")
             if raster:
                 band = raster.ReadAsArray()
-                zero_count = np.size(band) - np.count_nonzero(band)
-                zero_totals.append(zero_count)
-        if zero_totals:
-            least_zeros = min(zero_totals)
-            for i in range(0, len(zero_totals)):
-                if zero_totals[i] > int(least_zeros*1.05):
-                    os.remove(f"{path}{tiff_paths[i]}")
+                if np.count_nonzero(band) < 1:
+                    os.remove(f"{path}{tiff}")
                     removed += 1
         print(f"GeoTiffs Examined: {len(tiff_paths)}")
         print(f"GeoTiffs Removed:  {removed}")
     else:
-        print(f"Error: No tiffs were passed to remove_nan_subsets")
+        print(f"Error: No tiffs were passed to remove_nan_subsets()")
+        
 
         
 #####################
@@ -252,48 +248,6 @@ def polarization_exists(paths):
     else:
         return False                        
             
-'''
-def select_RTC_polarization(process_type, base_path):
-    polarizations = []
-    if process_type == 2: # Gamma
-        if polarization_exists(f"{base_path}/*/*_VV.tif"):
-            polarizations.append('_VV')
-        if polarization_exists(f"{base_path}/*/*_VH.tif"):
-            polarizations.append('_VH')
-        if polarization_exists(f"{base_path}/*/*_HV.tif"):
-            polarizations.append('_HV')
-        if polarization_exists(f"{base_path}/*/*_HH.tif"):
-            polarizations.append('_HH')
-    elif process_type == 18: # S1TBX
-        if polarization_exists(f"{base_path}/*/*-VV.tif"):
-            polarizations.append('-VV')
-        if polarization_exists(f"{base_path}/*/*-VH.tif"):
-            polarizations.append('-VH')
-        if polarization_exists(f"{base_path}/*/*-HV.tif"):
-            polarizations.append('-HV')
-        if polarization_exists(f"{base_path}/*/*-HH.tif"):
-            polarizations.append('-HH')
-    if len(polarizations) == 1:
-        print(f"Selecting the only available polarization: {polarizations[0]}")
-        return f"{base_path}/*/*{polarizations[0]}.tif"
-    elif len(polarizations) > 1:
-        print(f"Select a polarization:")
-        for i in range(0,len(polarizations)):
-            print(f"[{i}]: {polarizations[i]}")
-        while(True):
-            user_input = input()
-            try:
-                choice = int(user_input)
-            except ValueError:
-                print(f"Please enter the number of an available polarization.")
-                continue
-            if choice > len(polarizations) or choice < 0:
-                print(f"Please enter the number of an available polarization.")
-                continue               
-            return f"{base_path}/*/*{polarizations[choice]}.tif"
-    else:
-        print(f"Error: found no available polarizations.")                       
-'''
                     
 def select_RTC_polarization(process_type, base_path):
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
