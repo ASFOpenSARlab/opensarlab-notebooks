@@ -1,3 +1,9 @@
+# asf_notebook.py
+# Alex Lewandowski
+# 7-28-19
+# Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
+
+
 import os  # for chdir, getcwd, path.exists
 import re
 import time  # for perf_counter
@@ -13,23 +19,35 @@ import numpy as np
 import datetime
 import glob
 import asf_hyp3
+from IPython.utils.text import SList
+
+
+#######################
+#  Utility Functions  #
+#######################
 
 # path_exists()
 # Takes a string path, returns true if exists or
 # prints error message and returns false if it doesn't.
-def path_exists(path):
+
+
+def path_exists(path: str) -> bool:
     assert type(path) == str, 'Error: path must be a string'
+
     if os.path.exists(path):
         return True
     else:
         print(f"Invalid Path: {path}")
         return False
 
+
     
 # new_directory()
 # Takes a path for a new or existing directory. Creates directory
 # and sub-directories if not already present.
-def new_directory(path):
+
+
+def new_directory(path: str):
     assert type(path) == str
     
     if os.path.exists(path):
@@ -41,12 +59,15 @@ def new_directory(path):
         print(f"Failed to create path!")
 
 
+
 # download()
 # Takes a filename and get or post request, then downloads the file
 # while outputting a download status bar.
-# Preconditions:
-# - filename must be valid
-def download(filename, request):
+# Preconditions: filename must be valid
+
+
+def download(filename: str, request: requests.models.Response):
+    assert type(filename) == str, 'Error: filename must be a string'
     assert type(request) == requests.models.Response, 'Error: request must be a class<requests.models.Response>'
     
     with open(filename, 'wb') as f:
@@ -66,59 +87,98 @@ def download(filename, request):
                         time.perf_counter() - start), int((100*dl)/total_length)), end='\r', flush=True)
 
 
-# ASF_unzip()
-# Takes a destination directory and file path.
-# If file is a valid zip, it extracts all to the destination directory.
-def ASF_unzip(destination, file_path):
-    assert file_path.split('.')[-1] == 'zip', 'Error: file_path must be the path of a zip'
-    
-    if path_exists(destination):
-        file_name, ext = os.path.splitext(file_path)
-        if ext == ".zip":
+
+# asf_unzip()
+# Takes an output directory path and a file path to a zipped archive.
+# If file is a valid zip, it extracts all to the output directory.
+
+
+def asf_unzip(output_dir: str, file_path: str):
+    ext = os.path.splitext(file_path)[1]
+    assert type(output_dir) == str, 'Error: output_dir must be a string'
+    assert type(file_path) == str, 'Error: file_path must be a string'
+    assert ext == '.zip', 'Error: file_path must be the path of a zip'
+
+    if path_exists(output_dir):
+        if path_exists(file_path):
             print(f"Extracting: {file_path}")
             try:
-                zipfile.ZipFile(file_path).extractall(destination)
+                zipfile.ZipFile(file_path).extractall(output_dir)
             except zipfile.BadZipFile:
                 print(f"Zipfile Error.")
             return
 
 
-def remove_nan_filled_tifs(path, tiff_paths):
-    if tiff_paths: 
-        removed = 0
-        zero_totals = []
-        for tiff in tiff_paths:
-            raster = gdal.Open(f"{path}{tiff}")
-            if raster:
-                band = raster.ReadAsArray()
-                if np.count_nonzero(band) < 1:
-                    os.remove(f"{path}{tiff}")
-                    removed += 1
-        print(f"GeoTiffs Examined: {len(tiff_paths)}")
-        print(f"GeoTiffs Removed:  {removed}")
-    else:
-        print(f"Error: No tiffs were passed to remove_nan_subsets()")
-        
+
+ # remove_nan_filled_tifs()
+ # Takes a path to a directory containing tifs and
+ # and a list of the tif filenames.
+ # Deletes any tifs containing only NaN values.    
+    
+    
+def remove_nan_filled_tifs(tif_dir: str, file_names: SList):
+    assert type(tif_dir) == str, 'Error: tif_dir must be a string'
+    assert type(file_names) == SList, 'Error: file_names must be an IPython.utils.text.SList'
+    assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
+    
+    removed = 0
+    for tiff in file_names:
+        raster = gdal.Open(f"{tif_dir}{tiff}")
+        if raster:
+            band = raster.ReadAsArray()
+            if np.count_nonzero(band) < 1:
+                os.remove(f"{tif_dir}{tiff}")
+                removed += 1
+    print(f"GeoTiffs Examined: {len(file_names)}")
+    print(f"GeoTiffs Removed:  {removed}")
+
 
         
-#####################
-#  Earth Data Login #
-#####################
+########################
+#  Earth Data Function #
+########################
 
-def earthdata_login():
-    print(f"Enter your NASA EarthData username:")
-    username = input()
-    print(f"Enter your password:")
-    password = getpass()
+# eartdata_login()
+# takes user input to login to NASA Earthdata
+# updates .netrc with user credentials
+# returns an api object
+# note: Earthdata's EULA applies when accessing ASF APIs
+#       Hyp3 API handles HTTPError and LoginError
 
-    filename = "/home/jovyan/.netrc"
-    with open(filename, 'w+') as f:
-        f.write(
-            f"machine urs.earthdata.nasa.gov login {username} password {password}\n")
 
-    api = API(username)
-    api.login(password)
-    return api
+def earthdata_hyp3_login():
+    err = None
+    while(True):
+        if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
+            print(err)
+            print("Please Try again.\n")
+        print(f"Enter your NASA EarthData username:")
+        username = input()
+        print(f"Enter your password:")
+        password = getpass()
+        try:
+            api = API(username) # asf_hyp3 function
+        except:
+            raise
+        else:
+            try: 
+                api.login(password)
+            except asf_hyp3.LoginError as e:
+                err = e
+                clear_output()
+                continue
+            except Exception:
+                    raise
+            else:
+                clear_output()
+                print(f"Login successful.")
+                print(f"Welcome {username}.")
+                filename = "/home/jovyan/.netrc"
+                with open(filename, 'w+') as f:
+                    f.write(
+                        f"machine urs.earthdata.nasa.gov login {username} password {password}\n")
+                return api
+
 
 
 #########################
@@ -126,14 +186,17 @@ def earthdata_login():
 #########################
 
 # get_vertex_granule_info()
-# Takes a string granule name and int data level, and returns the granule info as json.<br><br>
+# Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
 # preconditions:
-# Requires AWS Vertex API authentification.
+# Requires AWS Vertex API authentification (already logged in).
 # Requires a valid granule name.
 # Granule and processing level must match.
 
 
-def get_vertex_granule_info(granule_name, processing_level):
+def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
+    assert type(granule_name) == str, 'Error: granule_name must be a string.'
+    assert type(processing_level) == str, 'Error: processing_level must be a string.'
+
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     response = requests.post(
         vertex_API_URL,
@@ -148,27 +211,30 @@ def get_vertex_granule_info(granule_name, processing_level):
             stream=True,
             auth=(username, pwd)
         )
-    if response.json()[0]:
+    if len(response.json()) > 0:
         json_response = response.json()[0][0]
         return json_response
     else:
         print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-
         
 
+
 # download_ASF_granule()
-# Takes a string granule name and int data level, then downloads the associated granule and returns its file name.<br><br>
+# Takes a string granule name and int data level, then downloads the associated granule 
+# and returns its file name.<br><br>
 # preconditions:
-# Requires AWS Vertex API authentification.
+# Requires AWS Vertex API authentification (already logged in).
 # Requires a valid granule name.
 # Granule and processing level must match.
 
 
-def download_ASF_granule(granule_name, processing_level):
+def download_ASF_granule(granule_name, processing_level) -> str:
+    assert type(granule_name) == str, 'Error: granule_name must be a string.'
+    assert type(processing_level) == str, 'Error: processing_level must be a string.'
+
     vertex_info = get_vertex_granule_info(granule_name, processing_level)
     url = vertex_info["downloadUrl"]
     local_filename = vertex_info["fileName"]
-    # NOTE stream=True is required for chunking
     r = requests.post(url, stream=True)
     if r.status_code == 401:
         pwd = getpass('Password for {}: '.format(username))
@@ -189,6 +255,7 @@ def download_ASF_granule(granule_name, processing_level):
         return local_filename
 
 
+
 #######################
 #  Hyp3 API Functions #
 #######################
@@ -199,13 +266,16 @@ def download_ASF_granule(granule_name, processing_level):
 # precondition: must already be logged into hyp3
 
 
-def get_hyp3_subscriptions(hyp3_api_object):
+def get_hyp3_subscriptions(hyp3_api_object: asf_hyp3.API) -> dict:
     assert type(hyp3_api_object) == asf_hyp3.API, f"Error: get_hyp3_subscriptions was passed a {type(hyp3_api_object)}, not a asf_hyp3.API object"
-    
-    subscriptions = hyp3_api_object.get_subscriptions(enabled=True)
-    if not subscriptions:
-        print("There are no subscriptions associated with this Hyp3 account.")
-    return subscriptions
+    try:
+        subscriptions = hyp3_api_object.get_subscriptions(enabled=True)
+    except Exception:
+        raise
+    else:
+        if not subscriptions:
+            print("There are no subscriptions associated with this Hyp3 account.")
+        return subscriptions
 
 
 
@@ -214,9 +284,9 @@ def get_hyp3_subscriptions(hyp3_api_object):
 # Returns None if subscription list is empty
 
 
-def pick_hyp3_subscription(subscriptions):
+def pick_hyp3_subscription(subscriptions: list) -> int:
     assert type(subscriptions) == list, 'Error: subscriptions must be a list'
-    assert subscriptions, 'Error: There are no subscriptions in the passed list'
+    assert len(subscriptions) > 0, 'Error: There are no subscriptions in the passed list'
     
     subscription_ids = []
     while(True):
@@ -240,17 +310,36 @@ def pick_hyp3_subscription(subscriptions):
     return subscription_id
 
 
-                                              
-def polarization_exists(paths):
+
+# polarization_exists()
+# Takes a wildcard path to images with a particular polarization
+# ie. "rtc_products/*/*_VV.tif"
+# returns true if any matching paths are found, else false
+
+                    
+def polarization_exists(paths: str):
+    assert type(paths) == str, 'Error: must pass string wildcard path of form "rtc_products/*/*_VV.tif"'
+
     pth = glob.glob(paths)
     if pth:
         return True
     else:
         return False                        
+
+
+
+# select_RTC_polarization()
+# Takes an int process type and a string path to a base directory
+# If files in multiple polarizations found, promts user for a choice.
+# Returns string wildcard path to files of selected (or only available)
+# polarization     
             
                     
-def select_RTC_polarization(process_type, base_path):
+def select_RTC_polarization(process_type: int, base_path: str) -> str:
+    assert process_type == 2 or process_type == 18, 'Error: process_type must be 2 (GAMMA) or 18 (S1TBX).'
+    assert type(base_path) == str, 'Error: base_path must be a string.'
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
+    
     polarizations = []
     if process_type == 2: # Gamma
         separator = '_'
@@ -283,15 +372,19 @@ def select_RTC_polarization(process_type, base_path):
                 continue               
             return f"{base_path}/*/*{polarizations[choice]}.tif"
     else:
-        print(f"Error: found no available polarizations.")                       
+        print(f"Error: found no available polarizations.")      
+
+
                                             
 # date_range_valid()
 # Takes a start and end date. 
 # Returns True if start_date <= end_date, else prints an error message and returns False.
-# Preconditions: start_date and end_date must be datetime.date objects
-                        
-                        
-def date_range_valid(start_date, end_date):
+                   
+                    
+def date_range_valid(start_date: datetime.date, end_date: datetime.date) -> bool:
+    assert type(start_date) == datetime.date, 'Error: start_date must be a datetime.date'
+    assert type(end_date) == datetime.date, 'Error:, end_date must be a datetime.date'
+
     if start_date and end_date:
         if start_date > end_date:
             print("Error: The start date must be prior to the end date.")
@@ -315,7 +408,9 @@ def date_range_valid(start_date, end_date):
 #                hyp3_API get_products() function.
                         
                         
-def get_aquisition_date_from_product_name(product_info):
+def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
+    assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
+                    
     product_name = product_info['name']
     split_name = product_name.split('_')
     if len(split_name) == 1:
@@ -330,13 +425,18 @@ def get_aquisition_date_from_product_name(product_info):
 
 # filter_date_range() 
 # Takes a product list and date range.
-# Returns filtered list of products falling inside date range.
+# Returns filtered list of product info dictionaries falling inside date range.
 # Preconditions: - product_list must be a list of dictionaries containing product info, as returned from the
 #                  hyp3_API get_products() function.
 #                - start_date and end_date must be datetime.date objects
                         
                         
-def filter_date_range(product_list, start_date, end_date):
+def filter_date_range(product_list: list, start_date: datetime.date, end_date: datetime.date) -> list:
+    assert type(product_list) == list, 'Error: product_list must be a list of product_info dictionaries.'
+    assert len(product_list) > 0, 'Error: product_list must contain at least one product_info dictionary.'
+    for info_dict in product_list:
+        assert type(info_dict) == dict, 'Error: product_list must be a list of product info dictionaries.'
+               
     filtered_products = []                    
     for product in product_list:
         date = get_aquisition_date_from_product_name(product)
@@ -352,7 +452,7 @@ def filter_date_range(product_list, start_date, end_date):
 # else returns True
                         
                         
-def flight_direction_valid(flight_direction=None):
+def flight_direction_valid(flight_direction: str=None) -> bool:
     if flight_direction:
         valid_directions = ['A', 'ASC', 'ASCENDING', 'D', 'DESC', 'DESCENDING']
         if flight_direction not in valid_directions:
@@ -364,11 +464,20 @@ def flight_direction_valid(flight_direction=None):
                         
                         
 # product_filter()
-# Takes a list of products, flight_direction(optional) and path(optional)
-# Returns a list of products filtered by flight_direction and/or path
+# Takes a list of products info dictionaries, string flight_direction(optional) and int path(optional)
+# Returns a list of products info dictionaries filtered by flight_direction and/or path
                         
                         
-def product_filter(product_list, flight_direction=None, path=None):
+def product_filter(product_list: list, flight_direction: str=None, path: int=None) -> list:
+    assert type(product_list) == list, 'Error: product_list must be a list of product_info dictionaries.'
+    assert len(product_list) > 0, 'Error: product_list must contain at least one product_info dictionary.'
+    for info_dict in product_list:
+        assert type(info_dict) == dict, 'Error: product_list must be a list of product info dictionaries.'
+    if flight_direction:
+        assert type(flight_direction) == str, 'Error: flight_direction must be a string.'
+    if path:
+        assert type(path) == int, 'Error: path must be an integer.'
+                    
     if flight_direction or path:
         filtered_products = []                        
         for product in product_list:                 
@@ -409,7 +518,24 @@ def product_filter(product_list, flight_direction=None, path=None):
 #                -destination_path must be valid
 
 
-def download_hyp3_products(hyp3_api_object, destination_path, start_date=None, end_date=None, flight_direction=None, path=None):
+def download_hyp3_products(hyp3_api_object: asf_hyp3.API, 
+                           destination_path: str, 
+                           start_date: datetime.date=None, 
+                           end_date: datetime.date=None, 
+                           flight_direction: str=None, 
+                           path: int=None) -> int:
+    assert type(hyp3_api_object) == asf_hyp3.API, 'Error: hyp3_api_object must be an asf_hyp3.API object.'
+    assert type(destination_path) == str, 'Error: destination_path must be a string'
+    assert os.path.exists(destination_path), 'Error: desitination_path must be valid'
+    if start_date:
+        assert type(start_date) == datetime.date, 'Error: start_date must be a datetime.date'
+    if end_date:
+        assert type(end_date) == datetime.date, 'Error:, end_date must be a datetime.date'
+    if flight_direction:
+        assert type(flight_direction) == str, 'Error: flight_direction must be a string.'
+    if path:
+        assert type(path) == int, 'Error: path must be an integer.'
+                    
     subscriptions = get_hyp3_subscriptions(hyp3_api_object)
     subscription_id = pick_hyp3_subscription(subscriptions)
     if subscription_id:
@@ -452,10 +578,9 @@ def download_hyp3_products(hyp3_api_object, destination_path, start_date=None, e
                     print(f"\n")
                     os.rename(filename, f"{filename}.zip")
                     filename = f"{filename}.zip"
-                    ASF_unzip(destination_path, filename)
+                    asf_unzip(destination_path, filename)
                     os.remove(filename)
                     print(f"\nDone.")
                 else:
                     print(f"{filename} already exists.")
         return subscription_id
-
