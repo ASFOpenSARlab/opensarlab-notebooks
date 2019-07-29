@@ -12,6 +12,7 @@ from getpass import getpass  # used to input URS creds and add to .netrc
 import zipfile  # for extractall, ZipFile, BadZipFile
 import datetime
 import glob
+import sys
 
 import gdal  # for Open
 import numpy as np
@@ -80,10 +81,12 @@ def download(filename: str, request: requests.models.Response):
                     f.write(chunk)
                     f.flush()
                     done = int(50 * dl / int(total_length))
-                    print("\r[%s%s] %s bps, %s%%    " % ('=' * done, ' ' * (50-done), dl//(
-                        time.perf_counter() - start), int((100*dl)/total_length)), end='\r', flush=True)
-
-
+                    stars = '=' * done
+                    spaces = ' ' * (50-done)
+                    bps = dl//(time.perf_counter() - start)
+                    percent = int((100*dl)/total_length)
+                    print(f"\r[{stars}{spaces}] {bps} bps, {percent}%    ", end='\r', flush=True)
+                
 
 def asf_unzip(output_dir: str, file_path: str):
     """
@@ -142,7 +145,7 @@ def earthdata_hyp3_login():
           Hyp3 API handles HTTPError and LoginError
     """
     err = None
-    while(True):
+    while True:
         if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
             print(err)
             print("Please Try again.\n")
@@ -152,7 +155,7 @@ def earthdata_hyp3_login():
         password = getpass()
         try:
             api = API(username) # asf_hyp3 function
-        except:
+        except Exception:
             raise
         else:
             try: 
@@ -162,7 +165,7 @@ def earthdata_hyp3_login():
                 clear_output()
                 continue
             except Exception:
-                    raise
+                raise
             else:
                 clear_output()
                 print(f"Login successful.")
@@ -191,30 +194,27 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
     assert type(processing_level) == str, 'Error: processing_level must be a string.'
 
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    response = requests.post(
-        vertex_API_URL,
-        params=[('granule_list', granule_name), ('output', 'json'),
-                ('processingLevel', processing_level)]
-    )
-    if response.status_code == 401:
-        pwd = getpass('Password for {}: '.format(username))
+    try: 
         response = requests.post(
             vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'), ],
-            stream=True,
-            auth=(username, pwd)
+            params=[('granule_list', granule_name), ('output', 'json'),
+                    ('processingLevel', processing_level)]
         )
-    if len(response.json()) > 0:
-        json_response = response.json()[0][0]
-        return json_response
+    except requests.exceptions.RequestException as e:  # This is the correct syntax
+        print(e)
+        sys.exit(1)
     else:
-        print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
+        if len(response.json()) > 0:
+            json_response = response.json()[0][0]
+            return json_response
+        else:
+            print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
         
 
 
-def download_ASF_granule(granule_name, processing_level) -> str:
+def download_ASF_granule(granule_name: str, processing_level: str) -> str:
     """
-    Takes a string granule name and int data level, then downloads the associated granule 
+    Takes a string granule name and string processing level, then downloads the associated granule 
     and returns its file name.<br><br>
     preconditions:
     Requires AWS Vertex API authentification (already logged in).
@@ -227,24 +227,26 @@ def download_ASF_granule(granule_name, processing_level) -> str:
     vertex_info = get_vertex_granule_info(granule_name, processing_level)
     url = vertex_info["downloadUrl"]
     local_filename = vertex_info["fileName"]
-    r = requests.post(url, stream=True)
-    if r.status_code == 401:
-        pwd = getpass('Password for {}: '.format(username))
-        r = requests.post(r.url, stream=True, auth=(username, pwd))
-    total_length = int(r.headers.get('content-length'))
-    if os.path.exists(local_filename):
-        if os.stat(local_filename).st_size == total_length:
-            print(
-                f"{local_filename} is already present in current working directory.")
-            return local_filename
-    print(f"Downloading {url}")
-    download(local_filename, r)
-    if os.stat(local_filename).st_size < total_length:
-        print('\nDownload failed!\n')
-        return
+    try:
+        r = requests.post(url, stream=True)
+    except requests.exceptions.RequestException as e:
+        print(e)
+        sys.exit(1)
     else:
-        print('\nDone\n')
-        return local_filename
+        total_length = int(r.headers.get('content-length'))
+        if os.path.exists(local_filename):
+            if os.stat(local_filename).st_size == total_length:
+                print(
+                    f"{local_filename} is already present in current working directory.")
+                return local_filename
+        print(f"Downloading {url}")
+        download(local_filename, r)
+        if os.stat(local_filename).st_size < total_length:
+            print('\nDownload failed!\n')
+            return
+        else:
+            print('\nDone\n')
+            return local_filename
 
 
 
@@ -280,26 +282,21 @@ def pick_hyp3_subscription(subscriptions: list) -> int:
     assert type(subscriptions) == list, 'Error: subscriptions must be a list'
     assert len(subscriptions) > 0, 'Error: There are no subscriptions in the passed list'
     
-    subscription_ids = []
-    while(True):
-        subscription_id = None
-        while not subscription_id:
-            print(f"Enter a subscription ID number:")
-            for subscription in subscriptions:
-                print(
-                    f"\nSubscription id: {subscription['id']} {subscription['name']}")
-                subscription_ids.append(subscription['id'])
-            try:
-                subscription_id = int(input())
-            except ValueError:
-                clear_output()
-                print("Invalid ID\nPick a subscription ID from the above list.")
-        if subscription_id in subscription_ids:
-            break
+    possible_ids = []
+    for subscription in subscriptions:
+        print(
+            f"\nSubscription id: {subscription['id']} {subscription['name']}")
+        possible_ids.append(subscription['id'])
+    while True:
+        print(f"Pick a subscription ID from the above list:")
+        try:
+            user_choice = int(input())
+            if user_choice in possible_ids:
+                return user_choice
+        except ValueError:
+            print("\nInvalid ID")
         else:
-            print("Invalid ID\nPick a valid subscription ID from the list.\n")
-            clear_output()
-    return subscription_id
+            print("\nInvalid ID")
 
                     
 def polarization_exists(paths: str):
@@ -346,9 +343,9 @@ def select_RTC_polarization(process_type: int, base_path: str) -> str:
         return f"{base_path}/*/*{polarizations[0]}.tif"
     elif len(polarizations) > 1:
         print(f"Select a polarization:")
-        for i in range(0,len(polarizations)):
+        for i in range(0, len(polarizations)):
             print(f"[{i}]: {polarizations[i]}")
-        while(True):
+        while True:
             user_input = input()
             try:
                 choice = int(user_input)
@@ -363,25 +360,20 @@ def select_RTC_polarization(process_type: int, base_path: str) -> str:
         print(f"Error: found no available polarizations.")      
 
                     
-def date_range_valid(start_date: datetime.date, end_date: datetime.date) -> bool:
+def date_range_valid(start_date: datetime.date = None, end_date: datetime.date = None) -> bool:
     """
     Takes a start and end date. 
     Returns True if start_date <= end_date, else prints an error message and returns False.
     """
-    assert type(start_date) == datetime.date, 'Error: start_date must be a datetime.date'
-    assert type(end_date) == datetime.date, 'Error:, end_date must be a datetime.date'
-
-    if start_date and end_date:
-        if start_date > end_date:
-            print("Error: The start date must be prior to the end date.")
-        else:
-            return True
-    elif (start_date and not end_date) or (not start_date and end_date):
-        if not start_date:
-            print("Error: An end date was passed, but not a start date.")
-        else:
-            print("Error: A start date was passed, but not an end date.")
+    if start_date:
+        assert type(start_date) == datetime.date, 'Error: start_date must be a datetime.date'
+    if end_date:
+        assert type(end_date) == datetime.date, 'Error:, end_date must be a datetime.date'
+            
+    if start_date is None or end_date is None:
         return False
+    elif start_date > end_date:
+        print("Error: The start date must be prior to the end date.")
     else:                
         return True
                                               
@@ -427,22 +419,23 @@ def filter_date_range(product_list: list, start_date: datetime.date, end_date: d
     return filtered_products
                        
                         
-def flight_direction_valid(flight_direction: str=None) -> bool:
+def flight_direction_valid(flight_direction: str = None) -> bool:
     """
     Takes a flight direction (or None)
     Returns False if flight direction is not a valid Vertex API flight direction key value
     else returns True
     """
-    if flight_direction:
-        valid_directions = ['A', 'ASC', 'ASCENDING', 'D', 'DESC', 'DESCENDING']
-        if flight_direction not in valid_directions:
-            print(f"Error: {flight_direction} is not a valid flight direction.")
-            print(f"Valid Directions: {valid_directions}")           
-            return False
-    return True
+    assert type(flight_direction) == str, 'Error: flight_direction must be a string.'
+    valid_directions = ['A', 'ASC', 'ASCENDING', 'D', 'DESC', 'DESCENDING']
+    if flight_direction not in valid_directions:
+        print(f"Error: {flight_direction} is not a valid flight direction.")
+        print(f"Valid Directions: {valid_directions}")           
+        return False
+    else:
+        return True
 
                         
-def product_filter(product_list: list, flight_direction: str=None, path: int=None) -> list:
+def product_filter(product_list: list, flight_direction: str = None, path: int = None) -> list:
     """
     Takes a list of products info dictionaries, string flight_direction(optional) and int path(optional)
     Returns a list of products info dictionaries filtered by flight_direction and/or path
@@ -467,19 +460,15 @@ def product_filter(product_list: list, flight_direction: str=None, path: int=Non
                 parameters.append(('flightDirection', flight_direction))
             if path:
                 parameters.append(('relativeOrbit', path))
-            response = requests.post(
-                vertex_API_URL,
-                params=parameters,
-                stream=True
-            )
-            if response.status_code == 401:
-                pwd = getpass('Password for {}: '.format(username))
+            try:
                 response = requests.post(
                     vertex_API_URL,
                     params=parameters,
-                    stream=True,
-                    auth=(username, pwd)
-                )               
+                    stream=True
+                )
+            except requests.exceptions.RequestException as e:
+                print(e)
+                sys.exit(1)               
             json_response = None
             if response.json()[0]:
                 json_response = response.json()[0][0]
@@ -490,10 +479,10 @@ def product_filter(product_list: list, flight_direction: str=None, path: int=Non
 
 def download_hyp3_products(hyp3_api_object: API, 
                            destination_path: str, 
-                           start_date: datetime.date=None, 
-                           end_date: datetime.date=None, 
-                           flight_direction: str=None, 
-                           path: int=None) -> int:
+                           start_date: datetime.date = None, 
+                           end_date: datetime.date = None, 
+                           flight_direction: str = None, 
+                           path: int = None) -> int:
     """
     Takes a Hyp3 API object and a destination path.
     Calls pick_hyp3_subscription() and downloads all products associated with the selected subscription. 
@@ -527,15 +516,17 @@ def download_hyp3_products(hyp3_api_object: API,
                 break
             for product in product_page:
                 products.append(product)
-        if date_range_valid(start_date, end_date) and flight_direction_valid(flight_direction):
-            if start_date:
-                products = filter_date_range(products, start_date, end_date)
-            if flight_direction:
+        if date_range_valid(start_date, end_date): 
+            products = filter_date_range(products, start_date, end_date)
+        if flight_direction: # must check this because both None and incorrect flight_directions 
+                             # will return False and it shouldn't exit if flight_direction is None
+            if flight_direction_valid(flight_direction):
                 products = product_filter(products, flight_direction=flight_direction)
-            if path:
-                products = product_filter(products, path=path) 
-        else:         
-            return
+            else:
+                print('Aborting download_hyp3_products() due to invalid flight_direction.')
+                sys.exit(1)
+        if path:
+            products = product_filter(products, path=path) 
         if path_exists(destination_path):
             print(f"\n{len(products)} products are associated with the selected date range, flight direction, and path for Subscription ID: {subscription_id}")
             for p in products:
