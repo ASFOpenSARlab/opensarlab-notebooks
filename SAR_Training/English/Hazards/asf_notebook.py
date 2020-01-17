@@ -139,25 +139,26 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: SList):
     print(f"GeoTiffs Removed:  {removed}")
     
     
-def input_path():        
+def input_path(prompt):        
     print(f"Current working directory: {os.getcwd()}") 
-    print(f"\nPlease enter the name of a new subdirectory in which to store your data stack.")
+    print(prompt)
     return input()
 
 
 def handle_old_data(data_dir, contents):
     print(f"\n********************** WARNING! **********************")
-    print(f"The subdirectory {data_dir} already exists and contains:")
+    print(f"The directory {data_dir} already exists and contains:")
     for item in contents:
         print(f"• {item.split('/')[-1]}")
     print(f"\n\n[1] Delete old data and continue.")
-    print(f"[2] Save old data and pick a different subdirectory name.")
+    print(f"[2] Save old data and add the data from this analysis to it.")
+    print(f"[3] Save old data and pick a different subdirectory name.")
     while True:
         try:
-            selection = int(input("Select option 1 or 2.\n"))
+            selection = int(input("Select option 1, 2, or 3.\n"))
         except ValueError:
              continue
-        if selection < 1 or selection > 2:
+        if selection < 1 or selection > 3:
              continue
         return selection
 
@@ -334,12 +335,24 @@ def get_product_info(products_info: list, date_range: list) -> dict:
                 directions.append(json_response['flightDirection'])
                 urls.append(p_info['url'])
     return {'paths': paths, 'directions': directions, 'urls': urls}           
-                        
+         
+            
 def get_products_dates(products_info: list) -> list:
     dates = []
     for info in products_info:
         dates.append(info['name'].split('_')[4].split('T')[0])
+    dates.sort()
     return dates  
+           
+            
+def get_products_dates_insar(products_info: list) -> list:
+    dates = []
+    for info in products_info:
+        dates.append(info['name'].split('-')[1].split('T')[0])
+        dates.append(info['name'].split('-')[2].split('T')[0])
+    dates.sort()
+    return dates             
+         
             
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
     start_date = datetime.strptime(min(dates), '%Y%m%d')
@@ -355,9 +368,8 @@ def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:
     orientation = 'horizontal',
     layout = {'width': '500px'})
     return(selection_range_slider)  
-            
-            
-            
+          
+                     
 def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> list:
     '''Returns the minimum and maximum dates retrieved from the
     interactive time slider.
@@ -391,12 +403,12 @@ def get_RTC_polarizations(process_type: int, base_path: str) -> str:
     Takes an int process type and a string path to a base directory
     Returns a list of present polarizations
     """
-    assert process_type == 2 or process_type == 18, 'Error: process_type must be 2 (GAMMA) or 18 (S1TBX).'
+    assert process_type == 2 or process_type == 18 or process_type == 31, 'Error: process_type must be 2 (GAMMA) or 18 (S1TBX).'
     assert type(base_path) == str, 'Error: base_path must be a string.'
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
     
     polarizations = []
-    if process_type == 2: # Gamma
+    if process_type == 2 or process_type == 31: # Gamma
         separator = '_'
     elif process_type == 18: # S1TBX
         separator = '-'                
@@ -404,6 +416,10 @@ def get_RTC_polarizations(process_type: int, base_path: str) -> str:
         polarizations.append('VV')
     if polarization_exists(f"{base_path}/*/*{separator}VH.tif"):
         polarizations.append('VH')
+    if polarization_exists(f"{base_path}/*/*{separator}vv.tif"):
+        polarizations.append('vv')
+    if polarization_exists(f"{base_path}/*/*{separator}vh.tif"):
+        polarizations.append('vh')
     if polarization_exists(f"{base_path}/*/*{separator}HV.tif"):
         polarizations.append('HV')
     if polarization_exists(f"{base_path}/*/*{separator}HH.tif"):
