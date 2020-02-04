@@ -503,9 +503,6 @@ def remote_jupyter_proxy_url(port):
 
     service_url_path = os.environ['JUPYTERHUB_SERVICE_PREFIX']
     proxy_url_path = 'proxy/%d' % port
-            
-    print(f"service_url_path: {service_url_path}")
-    print(f"os.environ: {os.environ}")                       
 
     user_url = urllib.parse.urljoin(base_url, service_url_path)
     full_url = urllib.parse.urljoin(user_url, proxy_url_path)
