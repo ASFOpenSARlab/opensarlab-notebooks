@@ -16,6 +16,7 @@ import glob
 import sys
 import urllib
 from subprocess import call, PIPE
+import json
 
 import gdal  # for Open
 import numpy as np
@@ -167,47 +168,56 @@ def handle_old_data(data_dir, contents):
 #  Earth Data Function #
 ########################
 
-
-def earthdata_hyp3_login():
-    """
-    takes user input to login to NASA Earthdata
-    updates .netrc with user credentials
-    returns an api object
-    note: Earthdata's EULA applies when accessing ASF APIs
-          Hyp3 API handles HTTPError and LoginError
-    """
-    err = None
-    while True:
-        if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
-            print(err)
-            print("Please Try again.\n")
-        print(f"Enter your NASA EarthData username:")
-        username = input()
-        print(f"Enter your password:")
-        password = getpass()
-        try:
-            api = API(username) # asf_hyp3 function
-        except Exception:
-            raise
-        else:
-            try: 
-                api.login(password)
-            except LoginError as e:
-                err = e
-                clear_output()
-                continue
+class EarthdataLogin:
+  
+    def __init__(self):
+              
+        """
+        takes user input to login to NASA Earthdata
+        updates .netrc with user credentials
+        returns an api object
+        note: Earthdata's EULA applies when accessing ASF APIs
+              Hyp3 API handles HTTPError and LoginError
+        """
+        err = None
+        while True:
+            if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
+                print(err)
+                print("Please Try again.\n")
+            print(f"Enter your NASA EarthData username:")
+            username = input()
+            print(f"Enter your password:")
+            password = getpass()
+            try:
+                api = API(username) # asf_hyp3 function
             except Exception:
                 raise
             else:
-                clear_output()
-                print(f"Login successful.")
-                print(f"Welcome {username}.")
-                filename = "/home/jovyan/.netrc"
-                with open(filename, 'w+') as f:
-                    f.write(
-                        f"machine urs.earthdata.nasa.gov login {username} password {password}\n")
-                return api
+                try: 
+                    api.login(password)
+                except LoginError as e:
+                    err = e
+                    clear_output()
+                    continue
+                except Exception:
+                    raise
+                else:
+                    clear_output()
+                    print(f"Login successful.")
+                    print(f"Welcome {username}.")
+                    self.username = username
+                    self.password = password
+                    self.api = api
+                    break
 
+
+    def login(self):
+        try: 
+            self.api.login(self.password)
+        except LoginError:
+            raise
+              
+              
 
 #########################
 #  Vertex API Functions #
@@ -247,73 +257,68 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
 #  Hyp3 API Functions #
 #######################
 
-
-def get_hyp3_subscriptions(hyp3_api_object: API) -> dict:
+                        
+def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     """
-    Takes a Hyp3 API object and returns a list of associated, enabled subscriptions
+    Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
     Returns None if there are no enabled subscriptions associated with Hyp3 account.
-    precondition: must already be logged into hyp3
     """
-    assert type(hyp3_api_object) == API, f"Error: get_hyp3_subscriptions was passed a {type(hyp3_api_object)}, not a asf_hyp3.API object"
-    try:
-        subscriptions = hyp3_api_object.get_subscriptions(enabled=True)
-    except Exception:
-        raise
-    else:
-        if not subscriptions:
-            print("There are no subscriptions associated with this Hyp3 account.")
-        else:
-            subs = []
-            for sub in subscriptions:
-                subs.append(f"{sub['id']}: {sub['name']}")
-        return subs
-                            
-
-def pick_hyp3_subscription(subscriptions: list) -> int:
-    """
-    Takes a list of Hyp3 subscriptions, prompts the user to pick a subcription ID number, 
-    and returns that ID number.
-    Returns None if subscription list is empty
-    """
-    assert type(subscriptions) == list, 'Error: subscriptions must be a list'
-    assert len(subscriptions) > 0, 'Error: There are no subscriptions in the passed list'
     
-    possible_ids = []
-    for subscription in subscriptions:
-        print(subscriptions)
-        print(
-            f"\nSubscription id: {subscription['id']} {subscription['name']}")
-        possible_ids.append(subscription['id'])
+    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'    
+    
     while True:
-        print(f"Pick a subscription ID from the above list:")
+        subscriptions = login.api.get_subscriptions(enabled=True)
         try:
-            user_choice = int(input())
-            if user_choice in possible_ids:
-                return user_choice
-        except ValueError:
-            print("\nInvalid ID")
-        else:
-            print("\nInvalid ID")
+            if subscriptions['status'] == 'ERROR'and \
+                  subscriptions['message'] == 'You must have a valid API key':
+                creds = login.api.reset_api_key()
+                login.api.api = creds['api_key']
+        except (KeyError, TypeError):
+            break
 
-def get_subscription_products_info(subscription_id: int, api_object: API) -> list:
+    if not subscriptions:
+        print("There are no subscriptions associated with this Hyp3 account.")
+    else:
+        subs = []
+        for sub in subscriptions:
+            subs.append(f"{sub['id']}: {sub['name']}")
+    return subs                        
+                        
+            
+def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) -> list:
+                        
+    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
+    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
+                        
     products = []
     page_count = 0
-    while True:
-        product_page = api_object.get_products(
+    while True:       
+        product_page = login.api.get_products(
             sub_id=subscription_id, page=page_count, page_size=100)
-        page_count += 1
+        try:
+            if product_page['status'] == 'ERROR'and \
+                  product_page['message'] == 'You must have a valid API key':
+                creds = login.api.reset_api_key()
+                login.api.api = creds['api_key']
+                continue
+        except (KeyError, TypeError):
+            page_count += 1           
+            pass
         if not product_page:
             break
         for product in product_page:
             products.append(product)
     return products        
- 
-def get_product_info(products_info: list, date_range: list) -> dict:
+
+            
+def get_product_info(products_info: list, date_range: list) -> dict:               
     paths = []
     directions = []
     urls = []
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    for p_info in products_info:
+    for i, p_info in enumerate(products_info):
+        if p_info['process_id'] == 32 and i == len(products_info) - 1:
+            break
         dt = p_info['name'].split('_')[4].split('T')[0]
         if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) >= date_range[0]:
             if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) <= date_range[1]:
@@ -335,15 +340,18 @@ def get_product_info(products_info: list, date_range: list) -> dict:
                 directions.append(json_response['flightDirection'])
                 urls.append(p_info['url'])
     return {'paths': paths, 'directions': directions, 'urls': urls}           
-         
+
             
 def get_products_dates(products_info: list) -> list:
     dates = []
     for info in products_info:
-        dates.append(info['name'].split('_')[4].split('T')[0])
+        for chunk in info['name'].split('_'):
+            if len(chunk) == 15 and 'T' in chunk:
+                dates.append(chunk[:8])
+                break
     dates.sort()
-    return dates  
-           
+    return dates
+            
             
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
@@ -351,7 +359,7 @@ def get_products_dates_insar(products_info: list) -> list:
         dates.append(info['name'].split('-')[1].split('T')[0])
         dates.append(info['name'].split('-')[2].split('T')[0])
     dates.sort()
-    return dates             
+    return dates      
          
             
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
@@ -470,14 +478,9 @@ def select_mult_parameters(name: str, things: set):
         layout=widgets.Layout(height=f"{height}px", width='175px')
     )                      
             
-def get_wget_cmd(url: str): 
-                netrc = "/home/jovyan/.netrc"
-                f = open(netrc, 'r')
-                contents = f.read()
-                username = contents.split(' ')[3]
-                password = contents.split(' ')[5].split('\n')[0]
-                cmd = f"wget -c -q --show-progress --http-user={username} --http-password={password} {url}"
-                return cmd          
+def get_wget_cmd(url: str, login) -> str:
+    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
+    return cmd          
             
         
 ########################################
@@ -491,7 +494,7 @@ def remote_jupyter_proxy_url(port):
 
     If port is None we're asking about the URL
     for the origin header.
-    """
+    """   
     #base_url = os.environ['EXTERNAL_URL']
     base_url = 'https://opensarlab.asf.alaska.edu/'
     host = urllib.parse.urlparse(base_url).netloc
@@ -502,10 +505,7 @@ def remote_jupyter_proxy_url(port):
         return host
 
     service_url_path = os.environ['JUPYTERHUB_SERVICE_PREFIX']
-    proxy_url_path = 'proxy/%d' % port
-            
-    print(f"service_url_path: {service_url_path}")
-    print(f"os.environ: {os.environ}")                       
+    proxy_url_path = 'proxy/%d' % port                  
 
     user_url = urllib.parse.urljoin(base_url, service_url_path)
     full_url = urllib.parse.urljoin(user_url, proxy_url_path)
