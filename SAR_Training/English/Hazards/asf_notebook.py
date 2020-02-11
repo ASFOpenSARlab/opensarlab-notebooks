@@ -269,7 +269,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     while True:
         subscriptions = login.api.get_subscriptions(enabled=True)
         try:
-            if subscriptions['status'] == 'ERROR'and \
+            if subscriptions['status'] == 'ERROR' and \
                   subscriptions['message'] == 'You must have a valid API key':
                 creds = login.api.reset_api_key()
                 login.api.api = creds['api_key']
@@ -478,7 +478,7 @@ def select_mult_parameters(name: str, things: set):
         layout=widgets.Layout(height=f"{height}px", width='175px')
     )                      
             
-def get_wget_cmd(url: str, login) -> str:
+def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
     cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
     return cmd          
             
