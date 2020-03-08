@@ -163,7 +163,26 @@ def handle_old_data(data_dir, contents):
              continue
         return selection
 
+              
+###################
+#  GDAL Functions #
+###################
+              
+def vrt_to_gtiff(vrt: str, output: str):
+    if '.vrt' not in vrt:
+        print('Error: The path to your vrt does not contain a ".vrt" extension.')
+        return
+    if '.' not in output:
+        output = f"{output}.tif"
+    elif len(output) > 4 and (output[:-3] == 'tif' or output[:-4] == 'tiff'):
+        print('Error: the output argument must either not contain a ' /
+              'file extension, or have a "tif" or "tiff" file extension.')
+        return
         
+    cmd = f"gdal_translate -co \"COMPRESS=DEFLATE\" -a_nodata 0 {vrt} {output}"
+    sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
+    print(str(sub.stderr)[2: -3])
+              
 ########################
 #  Earth Data Function #
 ########################
@@ -269,7 +288,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     while True:
         subscriptions = login.api.get_subscriptions(enabled=True)
         try:
-            if subscriptions['status'] == 'ERROR'and \
+            if subscriptions['status'] == 'ERROR' and \
                   subscriptions['message'] == 'You must have a valid API key':
                 creds = login.api.reset_api_key()
                 login.api.api = creds['api_key']
@@ -478,7 +497,7 @@ def select_mult_parameters(name: str, things: set):
         layout=widgets.Layout(height=f"{height}px", width='175px')
     )                      
             
-def get_wget_cmd(url: str, login) -> str:
+def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
     cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
     return cmd          
             
