@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 7-28-19
+# 3-30-20
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -408,55 +408,29 @@ def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> lis
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
     return[slider_min, slider_max]        
-                    
-def polarization_exists(paths: str):
-    """
-    Takes a wildcard path to images with a particular polarization
-    ie. "rtc_products/*/*_VV.tif"
-    returns true if any matching paths are found, else false
-    """
-    assert type(paths) == str, 'Error: must pass string wildcard path of form "rtc_products/*/*_VV.tif"'
-
-    pth = glob.glob(paths)
-    if pth:
-        return True
-    else:
-        return False                             
+                                           
             
-                              
-
-def get_RTC_polarizations(process_type: int, base_path: str) -> str:
+def get_RTC_polarizations(base_path: str) -> list:
     """
-    Takes an int process type and a string path to a base directory
+    Takes a string path to a directory containing RTC product directories
     Returns a list of present polarizations
     """
-    assert process_type == 2 or process_type == 18 or process_type == 31, 'Error: process_type must be 2 (GAMMA) or 18 (S1TBX).'
     assert type(base_path) == str, 'Error: base_path must be a string.'
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
-    
-    polarizations = []
-    if process_type == 2 or process_type == 31: # Gamma
-        separator = '_'
-    elif process_type == 18: # S1TBX
-        separator = '-'                
-    if polarization_exists(f"{base_path}/*/*{separator}VV.tif"):
-        polarizations.append('VV')
-    if polarization_exists(f"{base_path}/*/*{separator}VH.tif"):
-        polarizations.append('VH')
-    if polarization_exists(f"{base_path}/*/*{separator}vv.tif"):
-        polarizations.append('vv')
-    if polarization_exists(f"{base_path}/*/*{separator}vh.tif"):
-        polarizations.append('vh')
-    if polarization_exists(f"{base_path}/*/*{separator}HV.tif"):
-        polarizations.append('HV')
-    if polarization_exists(f"{base_path}/*/*{separator}HH.tif"):
-        polarizations.append('HH')  
-    if len(polarizations) > 1:
-        return polarizations
+    paths = []
+    pths = glob.glob(f"{base_path}/*/*.tif")
+    if len(pths) > 0:
+        for p in pths:
+            filename = os.path.basename(p)
+            polar_fname = re.search("^\w{20,80}(_|-)(vv|VV|vh|VH|hh|HH|hv|HV).tif$", filename)
+            if polar_fname:
+                paths.append(polar_fname.string.split('.')[0][-2:])
+    if len(paths) > 0:
+        return list(set(paths))
     else:
-        print(f"Error: found no available polarizations.")        
-    
-            
+        print(f"Error: found no available polarizations.")                          
+         
+   
 def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
     """
     Takes a json dict containing the product name under the key 'name'
