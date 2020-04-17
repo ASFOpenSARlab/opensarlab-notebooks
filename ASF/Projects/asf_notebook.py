@@ -93,7 +93,7 @@ def asf_unzip(output_dir: str, file_path: str):
             return
 
         
-def get_power_set(my_set,set_size): 
+def get_power_set(my_set, set_size): 
     p_set = set()
     # set_size of power set of a set 
     # with set_size n is (2**n -1) 
@@ -118,14 +118,13 @@ def get_power_set(my_set,set_size):
     return p_set        
         
     
-def remove_nan_filled_tifs(tif_dir: str, file_names: SList):
+def remove_nan_filled_tifs(tif_dir: str, file_names: list):
     """
     Takes a path to a directory containing tifs and
     and a list of the tif filenames.
     Deletes any tifs containing only NaN values.  
     """
     assert type(tif_dir) == str, 'Error: tif_dir must be a string'
-    assert type(file_names) == SList, 'Error: file_names must be an IPython.utils.text.SList'
     assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
     
     removed = 0
@@ -375,8 +374,10 @@ def get_products_dates(products_info: list) -> list:
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
-        dates.append(info['name'].split('-')[1].split('T')[0])
-        dates.append(info['name'].split('-')[2].split('T')[0])
+        date_regex = "\w[0-9]{7}T[0-9]{6}(-|_)[0-9]{8}T[0-9]{6}"
+        date_str = re.search(date_regex, info['name']).group(0)
+        dates.append(date_str[0:8])
+        dates.append(date_str[16:24])
     dates.sort()
     return dates      
          
