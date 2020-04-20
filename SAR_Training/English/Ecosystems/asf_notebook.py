@@ -15,7 +15,7 @@ from datetime import datetime, date
 import glob
 import sys
 import urllib
-from subprocess import call, PIPE
+from subprocess
 import json
 
 import gdal  # for Open
@@ -235,7 +235,6 @@ class EarthdataLogin:
         except LoginError:
             raise
               
-              
 
 #########################
 #  Vertex API Functions #
@@ -379,7 +378,7 @@ def get_products_dates_insar(products_info: list) -> list:
         dates.append(date_str[0:8])
         dates.append(date_str[16:24])
     dates.sort()
-    return dates      
+    return dates   
          
             
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
