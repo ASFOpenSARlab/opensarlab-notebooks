@@ -93,7 +93,7 @@ def asf_unzip(output_dir: str, file_path: str):
             return
 
         
-def get_power_set(my_set, set_size): 
+def get_power_set(my_set,set_size): 
     p_set = set()
     # set_size of power set of a set 
     # with set_size n is (2**n -1) 
@@ -235,6 +235,7 @@ class EarthdataLogin:
         except LoginError:
             raise
               
+              
 
 #########################
 #  Vertex API Functions #
@@ -373,12 +374,10 @@ def get_products_dates(products_info: list) -> list:
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
-        date_regex = "\w[0-9]{7}T[0-9]{6}(-|_)[0-9]{8}T[0-9]{6}"
-        date_str = re.search(date_regex, info['name']).group(0)
-        dates.append(date_str[0:8])
-        dates.append(date_str[16:24])
+        dates.append(info['name'].split('-')[1].split('T')[0])
+        dates.append(info['name'].split('-')[2].split('T')[0])
     dates.sort()
-    return dates   
+    return dates      
          
             
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
@@ -484,7 +483,6 @@ def remote_jupyter_proxy_url(port):
     """
     Callable to configure Bokeh's show method when a proxy must be
     configured.
-
     If port is None we're asking about the URL
     for the origin header.
     """   
@@ -573,23 +571,19 @@ class AOI:
         subset = CustomJS(args=dict(source=self.sources['subset']), code="""
             // get data source from Callback args
             var data = source.data;
-
             /// get BoxSelectTool dimensions from cb_data parameter of Callback
             var geometry = cb_data['geometry'];
-
             var x0 = geometry['x0'];
             var y0 = geometry['y0'];
             var x1 = geometry['x1'];
             var y1 = geometry['y1'];
             var xxs = [[[x0, x0, x1, x1]]];
             var yys = [[[y0, y1, y1, y0]]];
-
             /// update data source with new Rect attributes
             data['xs'].pop();
             data['ys'].pop();
             data['xs'].push(xxs);
             data['ys'].push(yys);
-
             // emit update of data source
             source.change.emit();
         """)
@@ -694,4 +688,3 @@ class AOI:
         show(self.build_plot, notebook_url=remote_jupyter_proxy_url)
         print("Selected bounding box coords stored in AOI.subset_coords")
         print("[[lower_left_x, lower_left_y], [upper_right_x, upper_right_y]]\n")
-  
