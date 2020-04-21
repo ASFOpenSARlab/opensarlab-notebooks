@@ -234,42 +234,44 @@ class EarthdataLogin:
             self.api.login(self.password)
         except LoginError:
             raise
-              
-              
+                   
 
 #########################
 #  Vertex API Functions #
 #########################
-
-
-def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
+              
+def get_vertex_granule_info(granule_name: str, file_type=None) -> dict:
     """
-    Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
+    Takes a string granule name and string file type (deprecated), and returns the granule info as json.
     preconditions:
     Requires AWS Vertex API authentification (already logged in).
     Requires a valid granule name.
-    Granule and processing level must match.
     """
     assert type(granule_name) == str, 'Error: granule_name must be a string.'
-    assert type(processing_level) == str, 'Error: processing_level must be a string.'
 
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try: 
+    try:
+        if file_type:
+            print("Deprecation Warning: The file_type parameter has been deprecated and will "
+                  "be removed in a future release.")
         response = requests.post(
-            vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'),
-                    ('processingLevel', processing_level)]
-        )
+                vertex_API_URL,
+                params=[('granule_list', granule_name), ('output', 'json')]
+            )
     except requests.exceptions.RequestException as e:  # This is the correct syntax
         print(e)
         sys.exit(1)
     else:
         if len(response.json()) > 0:
-            json_response = response.json()[0][0]
-            return json_response
+            try:
+                json_response = response.json()[0][0]
+                return json_response
+            except IndexError as e:
+              print(f"Error: {granule_name} does not appear to be a valid scene name.")
+              return
         else:
             print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-        
+              
 
 #######################
 #  Hyp3 API Functions #
@@ -483,6 +485,7 @@ def remote_jupyter_proxy_url(port):
     """
     Callable to configure Bokeh's show method when a proxy must be
     configured.
+
     If port is None we're asking about the URL
     for the origin header.
     """   
@@ -571,19 +574,23 @@ class AOI:
         subset = CustomJS(args=dict(source=self.sources['subset']), code="""
             // get data source from Callback args
             var data = source.data;
+
             /// get BoxSelectTool dimensions from cb_data parameter of Callback
             var geometry = cb_data['geometry'];
+
             var x0 = geometry['x0'];
             var y0 = geometry['y0'];
             var x1 = geometry['x1'];
             var y1 = geometry['y1'];
             var xxs = [[[x0, x0, x1, x1]]];
             var yys = [[[y0, y1, y1, y0]]];
+
             /// update data source with new Rect attributes
             data['xs'].pop();
             data['ys'].pop();
             data['xs'].push(xxs);
             data['ys'].push(yys);
+
             // emit update of data source
             source.change.emit();
         """)
@@ -688,3 +695,4 @@ class AOI:
         show(self.build_plot, notebook_url=remote_jupyter_proxy_url)
         print("Selected bounding box coords stored in AOI.subset_coords")
         print("[[lower_left_x, lower_left_y], [upper_right_x, upper_right_y]]\n")
+  
