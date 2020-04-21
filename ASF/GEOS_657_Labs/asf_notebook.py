@@ -118,14 +118,13 @@ def get_power_set(my_set,set_size):
     return p_set        
         
     
-def remove_nan_filled_tifs(tif_dir: str, file_names: SList):
+def remove_nan_filled_tifs(tif_dir: str, file_names: list):
     """
     Takes a path to a directory containing tifs and
     and a list of the tif filenames.
     Deletes any tifs containing only NaN values.  
     """
     assert type(tif_dir) == str, 'Error: tif_dir must be a string'
-    assert type(file_names) == SList, 'Error: file_names must be an IPython.utils.text.SList'
     assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
     
     removed = 0
