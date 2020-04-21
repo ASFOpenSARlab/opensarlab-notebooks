@@ -15,7 +15,7 @@ from datetime import datetime, date
 import glob
 import sys
 import urllib
-from subprocess import call, PIPE
+import subprocess
 import json
 
 import gdal  # for Open
