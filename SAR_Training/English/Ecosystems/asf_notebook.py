@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 3-30-20
+# 6-5-2020
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -275,7 +275,7 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
 #######################
 
                         
-def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
+def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
     """
     Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
     Returns None if there are no enabled subscriptions associated with Hyp3 account.
@@ -284,7 +284,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'    
     
     while True:
-        subscriptions = login.api.get_subscriptions(enabled=True)
+        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
         try:
             if subscriptions['status'] == 'ERROR' and \
                   subscriptions['message'] == 'You must have a valid API key':
@@ -292,17 +292,19 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
                 login.api.api = creds['api_key']
         except (KeyError, TypeError):
             break
-
+    subs = []
     if not subscriptions:
-        print("There are no subscriptions associated with this Hyp3 account.")
+        if not group_id:
+            print(f"Found no subscriptions for Hyp3 user: {login.username}")
+        else:
+            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
     else:
-        subs = []
         for sub in subscriptions:
             subs.append(f"{sub['id']}: {sub['name']}")
     return subs                        
                         
-            
-def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) -> list:
+
+def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
                         
     assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
     assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
@@ -311,7 +313,7 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) 
     page_count = 0
     while True:       
         product_page = login.api.get_products(
-            sub_id=subscription_id, page=page_count, page_size=100)
+            sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
         try:
             if product_page['status'] == 'ERROR'and \
                   product_page['message'] == 'You must have a valid API key':
@@ -327,7 +329,17 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) 
             products.append(product)
     return products        
 
-            
+
+def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
+    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
+    return cmd        
+
+
+#######################################
+#   Product Related Utility Functions #
+#######################################
+         
+    
 def get_product_info(products_info: list, date_range: list) -> dict:               
     paths = []
     directions = []
@@ -358,7 +370,27 @@ def get_product_info(products_info: list, date_range: list) -> dict:
                 urls.append(p_info['url'])
     return {'paths': paths, 'directions': directions, 'urls': urls}           
 
-            
+   
+def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
+    """
+    Takes a json dict containing the product name under the key 'name'
+    Returns its aquisition date.                        
+    Preconditions: product_info must be a dictionary containing product info, as returned from the
+                   hyp3_API get_products() function.
+    """
+    assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
+                    
+    product_name = product_info['name']
+    split_name = product_name.split('_')
+    if len(split_name) == 1:
+        split_name = product_name.split('-')
+        d = split_name[1]
+        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
+    else:                    
+        d = split_name[4]
+        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
+    
+
 def get_products_dates(products_info: list) -> list:
     dates = []
     for info in products_info:
@@ -380,7 +412,12 @@ def get_products_dates_insar(products_info: list) -> list:
     dates.sort()
     return dates   
          
+    
+######################################
+#  Jupyter Notebook Widget Functions #
+######################################
             
+    
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
     start_date = datetime.strptime(min(dates), '%Y%m%d')
     end_date = datetime.strptime(max(dates), '%Y%m%d')
@@ -429,27 +466,6 @@ def get_RTC_polarizations(base_path: str) -> list:
         return list(set(paths))
     else:
         print(f"Error: found no available polarizations.")                          
-         
-   
-def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
-    """
-    Takes a json dict containing the product name under the key 'name'
-    Returns its aquisition date.                        
-    Preconditions: product_info must be a dictionary containing product info, as returned from the
-                   hyp3_API get_products() function.
-    """
-    assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
-                    
-    product_name = product_info['name']
-    split_name = product_name.split('_')
-    if len(split_name) == 1:
-        split_name = product_name.split('-')
-        d = split_name[1]
-        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
-    else:                    
-        d = split_name[4]
-        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
-
             
             
 def select_parameter(name: str, things: set):
@@ -471,15 +487,14 @@ def select_mult_parameters(name: str, things: set):
         layout=widgets.Layout(height=f"{height}px", width='175px')
     )                      
             
-def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
-    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd          
-            
         
 ########################################
 #  Bokeh related Functions and Classes #
 ########################################
             
+    
+ ##### The Bokeh functions and class are deprecated and will be removed in the next version #####   
+    
 def remote_jupyter_proxy_url(port):
     """
     Callable to configure Bokeh's show method when a proxy must be
