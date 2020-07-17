@@ -305,7 +305,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     return subs                        
                         
             
-def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) -> list:
+def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
                         
     assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
     assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
@@ -314,7 +314,7 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) 
     page_count = 0
     while True:       
         product_page = login.api.get_products(
-            sub_id=subscription_id, page=page_count, page_size=100)
+            sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
         try:
             if product_page['status'] == 'ERROR'and \
                   product_page['message'] == 'You must have a valid API key':
@@ -328,7 +328,7 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin) 
             break
         for product in product_page:
             products.append(product)
-    return products        
+    return products  
 
             
 def get_product_info(products_info: list, date_range: list) -> dict:               
@@ -431,7 +431,7 @@ def get_RTC_polarizations(base_path: str) -> list:
     else:
         print(f"Error: found no available polarizations.")                          
          
-   
+
 def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
     """
     Takes a json dict containing the product name under the key 'name'
@@ -441,17 +441,15 @@ def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
     """
     assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
                     
-    product_name = product_info['name']
-    split_name = product_name.split('_')
-    if len(split_name) == 1:
-        split_name = product_name.split('-')
-        d = split_name[1]
-        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
-    else:                    
-        d = split_name[4]
-        return datetime.date(int(d[0:4]), int(d[4:6]), int(d[6:8]))
-
-            
+    name = product_info['name']
+    regex = '[0-9]{8}'
+    match = re.search(regex, name)
+    if match:
+        dt = match[0]
+        return date(int(dt[:4]), int(dt[4:6]), int(dt[-2:]))
+    else:
+        raise ProductDateNotFoundException(f"Could not parse date from \"{name}\"")
+    
             
 def select_parameter(name: str, things: set):
     return widgets.RadioButtons(
