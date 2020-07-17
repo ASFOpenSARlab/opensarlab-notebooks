@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 6-5-2020
+# 3-30-20
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -37,16 +37,6 @@ from bokeh.io import curdoc, output_notebook, push_notebook, show
 from bokeh import events
 from bokeh.models.glyphs import Rect
 
-#######################
-#  Custom Exceptions  #
-#######################
-
-class ProductDateNotFoundException(Exception):
-    """
-    Raised when a product date cannot be parsed from
-    a product name
-    """
-    pass
 
 #######################
 #  Utility Functions  #
@@ -103,7 +93,7 @@ def asf_unzip(output_dir: str, file_path: str):
             return
 
         
-def get_power_set(my_set, set_size): 
+def get_power_set(my_set,set_size): 
     p_set = set()
     # set_size of power set of a set 
     # with set_size n is (2**n -1) 
@@ -171,7 +161,7 @@ def handle_old_data(data_dir, contents):
         if selection < 1 or selection > 3:
              continue
         return selection
-    
+
               
 ###################
 #  GDAL Functions #
@@ -244,48 +234,51 @@ class EarthdataLogin:
             self.api.login(self.password)
         except LoginError:
             raise
-              
+                   
 
 #########################
 #  Vertex API Functions #
 #########################
-
-
-def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
+              
+def get_vertex_granule_info(granule_name: str, file_type=None) -> dict:
     """
-    Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
+    Takes a string granule name and string file type (deprecated), and returns the granule info as json.
     preconditions:
     Requires AWS Vertex API authentification (already logged in).
     Requires a valid granule name.
-    Granule and processing level must match.
     """
     assert type(granule_name) == str, 'Error: granule_name must be a string.'
-    assert type(processing_level) == str, 'Error: processing_level must be a string.'
 
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try: 
+    try:
+        if file_type:
+            print("Deprecation Warning: The file_type parameter has been deprecated and will "
+                  "be removed in a future release.")
         response = requests.post(
-            vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'),
-                    ('processingLevel', processing_level)]
-        )
+                vertex_API_URL,
+                params=[('granule_list', granule_name), ('output', 'json')]
+            )
     except requests.exceptions.RequestException as e:  # This is the correct syntax
         print(e)
         sys.exit(1)
     else:
         if len(response.json()) > 0:
-            json_response = response.json()[0][0]
-            return json_response
+            try:
+                json_response = response.json()[0][0]
+                return json_response
+            except IndexError as e:
+              print(f"Error: {granule_name} does not appear to be a valid scene name.")
+              return
         else:
             print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-        
+              
 
 #######################
 #  Hyp3 API Functions #
 #######################
 
                         
-def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
+def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     """
     Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
     Returns None if there are no enabled subscriptions associated with Hyp3 account.
@@ -294,7 +287,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
     assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'    
     
     while True:
-        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
+        subscriptions = login.api.get_subscriptions(enabled=True)
         try:
             if subscriptions['status'] == 'ERROR' and \
                   subscriptions['message'] == 'You must have a valid API key':
@@ -302,18 +295,16 @@ def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
                 login.api.api = creds['api_key']
         except (KeyError, TypeError):
             break
-    subs = []
+
     if not subscriptions:
-        if not group_id:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}")
-        else:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
+        print("There are no subscriptions associated with this Hyp3 account.")
     else:
+        subs = []
         for sub in subscriptions:
             subs.append(f"{sub['id']}: {sub['name']}")
     return subs                        
                         
-
+            
 def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
                         
     assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
@@ -337,29 +328,20 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, 
             break
         for product in product_page:
             products.append(product)
-    return products        
+    return products  
 
-
-def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
-    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd        
-
-
-#######################################
-#   Product Related Utility Functions #
-#######################################
-         
-    
+            
 def get_product_info(products_info: list, date_range: list) -> dict:               
     paths = []
     directions = []
     urls = []
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for i, p_info in enumerate(products_info):
-        if p_info['process_id'] in [32, 7] and i == len(products_info) - 1:
+        if p_info['process_id'] == 32 and i == len(products_info) - 1:
             break
-        dt = get_aquisition_date_from_product_name(p_info)
-        if dt >= date_range[0] and dt <= date_range[1]:
+        dt = p_info['name'].split('_')[4].split('T')[0]
+        if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) >= date_range[0]:
+            if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) <= date_range[1]:
                 granule_name = p_info['name'].split('-')[0]
                 parameters = [('granule_list', granule_name), ('output', 'json')]
                 try:
@@ -379,26 +361,7 @@ def get_product_info(products_info: list, date_range: list) -> dict:
                 urls.append(p_info['url'])
     return {'paths': paths, 'directions': directions, 'urls': urls}           
 
-   
-def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
-    """
-    Takes a json dict containing the product name under the key 'name'
-    Returns its aquisition date.                        
-    Preconditions: product_info must be a dictionary containing product info, as returned from the
-                   hyp3_API get_products() function.
-    """
-    assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
-                    
-    name = product_info['name']
-    regex = '[0-9]{8}'
-    match = re.search(regex, name)
-    if match:
-        dt = match[0]
-        return date(int(dt[:4]), int(dt[4:6]), int(dt[-2:]))
-    else:
-        raise ProductDateNotFoundException(f"Could not parse date from \"{name}\"")
-    
-
+            
 def get_products_dates(products_info: list) -> list:
     dates = []
     for info in products_info:
@@ -413,19 +376,12 @@ def get_products_dates(products_info: list) -> list:
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
-        date_regex = "\w[0-9]{7}T[0-9]{6}(-|_)[0-9]{8}T[0-9]{6}"
-        date_str = re.search(date_regex, info['name']).group(0)
-        dates.append(date_str[0:8])
-        dates.append(date_str[16:24])
+        dates.append(info['name'].split('-')[1].split('T')[0])
+        dates.append(info['name'].split('-')[2].split('T')[0])
     dates.sort()
-    return dates   
+    return dates      
          
-    
-######################################
-#  Jupyter Notebook Widget Functions #
-######################################
             
-    
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
     start_date = datetime.strptime(min(dates), '%Y%m%d')
     end_date = datetime.strptime(max(dates), '%Y%m%d')
@@ -474,7 +430,26 @@ def get_RTC_polarizations(base_path: str) -> list:
         return list(set(paths))
     else:
         print(f"Error: found no available polarizations.")                          
-            
+         
+
+def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
+    """
+    Takes a json dict containing the product name under the key 'name'
+    Returns its aquisition date.                        
+    Preconditions: product_info must be a dictionary containing product info, as returned from the
+                   hyp3_API get_products() function.
+    """
+    assert type(product_info) == dict, 'Error: product_info must be a dictionary.'
+                    
+    name = product_info['name']
+    regex = '[0-9]{8}'
+    match = re.search(regex, name)
+    if match:
+        dt = match[0]
+        return date(int(dt[:4]), int(dt[4:6]), int(dt[-2:]))
+    else:
+        raise ProductDateNotFoundException(f"Could not parse date from \"{name}\"")
+    
             
 def select_parameter(name: str, things: set):
     return widgets.RadioButtons(
@@ -495,14 +470,15 @@ def select_mult_parameters(name: str, things: set):
         layout=widgets.Layout(height=f"{height}px", width='175px')
     )                      
             
+def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
+    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
+    return cmd          
+            
         
 ########################################
 #  Bokeh related Functions and Classes #
 ########################################
             
-    
- ##### The Bokeh functions and class are deprecated and will be removed in the next version #####   
-    
 def remote_jupyter_proxy_url(port):
     """
     Callable to configure Bokeh's show method when a proxy must be
