@@ -278,7 +278,7 @@ def get_vertex_granule_info(granule_name: str, file_type=None) -> dict:
 #######################
 
                         
-def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
+def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
     """
     Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
     Returns None if there are no enabled subscriptions associated with Hyp3 account.
@@ -287,7 +287,7 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
     assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'    
     
     while True:
-        subscriptions = login.api.get_subscriptions(enabled=True)
+        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
         try:
             if subscriptions['status'] == 'ERROR' and \
                   subscriptions['message'] == 'You must have a valid API key':
@@ -295,14 +295,16 @@ def get_hyp3_subscriptions(login: EarthdataLogin) -> dict:
                 login.api.api = creds['api_key']
         except (KeyError, TypeError):
             break
-
+    subs = []
     if not subscriptions:
-        print("There are no subscriptions associated with this Hyp3 account.")
+        if not group_id:
+            print(f"Found no subscriptions for Hyp3 user: {login.username}")
+        else:
+            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
     else:
-        subs = []
         for sub in subscriptions:
             subs.append(f"{sub['id']}: {sub['name']}")
-    return subs                        
+    return subs   
                         
             
 def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
