@@ -330,6 +330,17 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, 
     return products        
 
 
+def get_subscription_granule_urls_names(subscription_id: int, login: EarthdataLogin) -> list:
+                        
+    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
+    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
+                           
+    jobs_list = login.api.get_jobs(sub_id=subscription_id)
+    granules = dict()
+    for job in jobs_list:
+        granules.update({job['granule_url']: job['granule']})
+    return granules
+
 def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
     cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
     return cmd        
@@ -338,20 +349,29 @@ def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
 #######################################
 #   Product Related Utility Functions #
 #######################################
-         
-    
-def get_product_info(products_info: list, date_range: list) -> dict:               
+
+def date_from_product_name(name):
+    regex = "\w[0-9]{7}T[0-9]{6}"
+    results = re.search(regex, name)
+    if results:
+        return results.group(0)
+    else:
+        return None
+
+def get_product_info(granules: dict, date_range: list) -> dict:               
     paths = []
     directions = []
     urls = []
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    for i, p_info in enumerate(products_info):
-        if p_info['process_id'] == 32 and i == len(products_info) - 1:
-            break
-        dt = p_info['name'].split('_')[4].split('T')[0]
+    for url in granules:
+        granule_name = granules[url]
+        dt = date_from_product_name(granule_name)
+        if dt:
+            dt = dt.split('T')[0]
+        else:
+            continue
         if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) >= date_range[0]:
             if date(int(dt[:4]), int(dt[4:6]), int(dt[-2:])) <= date_range[1]:
-                granule_name = p_info['name'].split('-')[0]
                 parameters = [('granule_list', granule_name), ('output', 'json')]
                 try:
                     response = requests.post(
@@ -367,9 +387,8 @@ def get_product_info(products_info: list, date_range: list) -> dict:
                     json_response = response.json()[0][0]
                 paths.append(json_response['track'])
                 directions.append(json_response['flightDirection'])
-                urls.append(p_info['url'])
-    return {'paths': paths, 'directions': directions, 'urls': urls}           
-
+                urls.append(url)
+    return {'paths': paths, 'directions': directions, 'urls': urls}  
    
 def get_aquisition_date_from_product_name(product_info: dict) -> datetime.date:
     """
@@ -459,7 +478,7 @@ def get_RTC_polarizations(base_path: str) -> list:
     if len(pths) > 0:
         for p in pths:
             filename = os.path.basename(p)
-            polar_fname = re.search("^\w{20,80}(_|-)(vv|VV|vh|VH|hh|HH|hv|HV).tif$", filename)
+            polar_fname = re.search("^\w[\--~]{5,300}(_|-)(vv|VV|vh|VH|hh|HH|hv|HV).(tif|tiff)$", filename)
             if polar_fname:
                 paths.append(polar_fname.string.split('.')[0][-2:])
     if len(paths) > 0:
