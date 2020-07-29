@@ -335,7 +335,7 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, 
     return products   
 
 
-def get_subscription_granule_names(subscription_id: int, login: EarthdataLogin) -> list:
+def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLogin) -> dict:
                         
     assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
     assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
