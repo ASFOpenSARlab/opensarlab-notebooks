@@ -420,9 +420,10 @@ def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
         date_regex = "\w[0-9]{7}T[0-9]{6}(-|_)[0-9]{8}T[0-9]{6}"
-        date_str = re.search(date_regex, info['name']).group(0)
-        dates.append(date_str[0:8])
-        dates.append(date_str[16:24])
+        date_str = re.search(date_regex, info['granule'])
+        if date_str:
+            dates.append(date_str.group(0)[0:8])
+            dates.append(date_str.group(0)[16:24])
     dates.sort()
     return dates   
          
