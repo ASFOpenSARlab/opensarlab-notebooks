@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 6-5-2020
+# 9-10-2020
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -460,6 +460,16 @@ def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> lis
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
     return[slider_min, slider_max]        
+
+
+def get_polarity_from_path(path: str) -> str:
+    """
+    Takes a path to a HyP3 product containing its polarity in its filename
+    Returns the polarity string or none if not found
+    """
+    path = os.path.basename(path)
+    regex = "(v|V|h|H){2}"
+    return re.search(regex, path).group(0)
                                            
             
 def get_RTC_polarizations(base_path: str) -> list:
