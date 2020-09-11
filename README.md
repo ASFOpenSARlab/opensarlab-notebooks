@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/https%3A%2F%2Fopensarlab.asf.alaska.edu/binder_ExploreSARTimeSeriesFlood)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_ExploreSARTimeSeriesFlood)
 
 # ASF Jupyter Notebooks
 __Where python meets fun!!__
