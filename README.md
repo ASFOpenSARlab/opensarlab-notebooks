@@ -14,6 +14,6 @@ Python Tools
 - python 3.7  https://github.com/yunjunz/pyaps3.git
 - numpy  https://docs.scipy.org/doc/numpy/reference/
 - matplotlib  https://matplotlib.org/contents.html
-- scipy  https://docs.scipy.org/doc/scipy/reference/
-- pandas  https://pandas.pydata.org/pandas-docs/version/1.0.0/
-- gdal 3.0.2  https://www.gdal.org/
+- pyproj http://pyproj4.github.io/pyproj/stable/ 
+- pandas  https://pandas.pydata.org/docs/
+- gdal https://www.gdal.org/
