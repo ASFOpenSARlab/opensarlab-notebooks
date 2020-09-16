@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_SARTimeSeriesChangeDetection?filepath=Exercise4B-SARTimeSeriesChangeDetection.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_FloodMappingFromSARImages?filepath=FloodMappingFromSARImages.ipynb)
 
 # ASF Jupyter Notebooks
 __Where python meets fun!!__
@@ -16,18 +16,11 @@ Many of the notebooks contained in this repo are built to be ran on notebook ser
 The following is a non-exhaustive list of installed commonly used python and non-python packages.
 
 Python Tools
-- python 3.7.3  https://github.com/yunjunz/pyaps3.git
-- numpy 1.18.1  https://docs.scipy.org/doc/numpy/reference/
-- matplotlib 3.1.2  https://matplotlib.org/contents.html
-- scipy 1.4.1  https://docs.scipy.org/doc/scipy/reference/
-- pandas 1.0.0  https://pandas.pydata.org/pandas-docs/version/1.0.0/
-- bokeh 1.3.4  https://bokeh.pydata.org/en/latest/
-- gdal 3.0.2  https://www.gdal.org/
-
-SAR Tools
-- ASF MapReady  https://github.com/asfadmin/ASF_MapReady
-- ISCE 2.0.0_201609  https://winsar.unavco.org/software/isce
-- GIAnT (only runs under python2.7) http://earthdef.caltech.edu/projects/giant/wiki
-- SNAP 7.0  http://step.esa.int/main/toolboxes/snap/
-- asf-hyp3 3.0.3  https://pypi.org/project/asf-hyp3/
-- mintpy 1.2.0-7  https://mintpy.readthedocs.io/en/latest/
+- python 3.7
+- numpy 
+- matplotlib
+- scikit-fuzzy
+- pandas 
+- gdal
+- pyproj
+- rasterio 

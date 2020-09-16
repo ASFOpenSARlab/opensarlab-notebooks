@@ -8,5 +8,8 @@ dependencies:
   - matplotlib
   - gdal
   - pandas
+  - rasterio
+  - scikit-fuzzy
+  - pyproj
   - pip:
       - awscli
