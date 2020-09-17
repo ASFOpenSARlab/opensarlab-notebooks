@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_FloodMappingFromSARImages?filepath=FloodMappingFromSARImages.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_LosAngeles_time_series?filepath=LosAngeles_time_series.ipynb)
 
 # ASF Jupyter Notebooks
 __Where python meets fun!!__
