@@ -1,12 +1,12 @@
 #!/bin/sh
 
 ##--------- MintPy ------------------##
-export MINTPY_HOME=~/tools/MintPy
+export MINTPY_HOME=${HOME}/tools/MintPy
 export PYTHONPATH=${PYTHONPATH}:${MINTPY_HOME}
 export PATH=${PATH}:${MINTPY_HOME}/mintpy
 
 ##--------- PyAPS -------------------##
-export PYAPS_HOME=~/tools/PyAPS
+export PYAPS_HOME=${HOME}/tools/PyAPS
 export PYTHONPATH=${PYTHONPATH}:${PYAPS_HOME}
 
 git clone https://github.com/insarlab/MintPy.git $MINTPY_HOME
