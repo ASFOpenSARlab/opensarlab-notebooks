@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ##--------- MintPy ------------------##
 export MINTPY_HOME=${HOME}/tools/MintPy
