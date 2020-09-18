@@ -1,9 +1,5 @@
 #!/bin/sh
 
-conda init bash
-exec bash
-conda activate notebook
-
 ##--------- MintPy ------------------##
 export MINTPY_HOME=${HOME}/tools/MintPy
 export PYTHONPATH=${PYTHONPATH}:${MINTPY_HOME}
