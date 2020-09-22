@@ -24,6 +24,8 @@ VERSION = None
 REQUIRED = [
     'cvxopt', 'dask>=1.0', 'dask-jobqueue>=0.3', 'defusedxml', 'h5py', 'lxml', 'matplotlib', 
     'numpy', 'pyproj', 'pykml', 'pyresample', 'scikit-image', 'scikit-learn', 'scipy',
+    'gdal', 'pandas', 'rasterio', 'scikit-fuzzy', 'cartopy', 'cdsapi', 'cvxopt', 'ecCodes',
+    'netcdf4', 'openmp', 'pygrib', 'pyhdf', 'pykdtree',
 ]
 
 # What packages are optional?
