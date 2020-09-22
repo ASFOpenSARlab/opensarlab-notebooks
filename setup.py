@@ -26,7 +26,7 @@ REQUIRED = [
     'cvxopt', 'dask>=1.0', 'dask-jobqueue>=0.3', 'defusedxml', 'h5py', 'lxml', 'matplotlib',
     'pykml', 'pyresample', 'scikit-image', 'scikit-learn', 'scipy',
     'pandas', 'rasterio', 'scikit-fuzzy', 'cdsapi', 'cvxopt', 'ecCodes',
-    'netcdf4', 'pygrib', 'pyhdf', 'pykdtree', 'gdal', 'libgeos-dev',
+    'netcdf4', 'pygrib', 'pyhdf', 'pykdtree',
 ]
 
 # What packages are optional?
@@ -98,6 +98,8 @@ class UploadCommand(Command):
 # Where the magic happens:
 subprocess.call(f"pip install numpy", shell=True)
 subprocess.call(f"pip install pyproj", shell=True)
+
+
 setup(
     name=NAME,
     version=about['__version__'],
@@ -132,4 +134,4 @@ setup(
         'upload': UploadCommand,
     },
 )
-subprocess.call(f"pip install cartopy", shell=True)
+
