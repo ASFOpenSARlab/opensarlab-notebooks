@@ -95,7 +95,8 @@ class UploadCommand(Command):
 
 # Where the magic happens:
 subprocess.call(f"conda install gdal", shell=True)
-
+subprocess.call(f"pip install awscli", shell=True)
+sys.path.append('/home/jovyan/MintPy')
 setup(
     name=NAME,
     version=about['__version__'],
