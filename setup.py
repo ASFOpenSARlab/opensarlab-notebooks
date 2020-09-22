@@ -26,7 +26,7 @@ REQUIRED = [
     'cvxopt', 'dask>=1.0', 'dask-jobqueue>=0.3', 'defusedxml', 'h5py', 'lxml', 'matplotlib',
     'pyproj', 'pykml', 'pyresample', 'scikit-image', 'scikit-learn', 'scipy',
     'pandas', 'rasterio', 'scikit-fuzzy', 'cdsapi', 'cvxopt', 'ecCodes',
-    'netcdf4', 'libomp-dev', 'pygrib', 'pyhdf', 'pykdtree', 'gdal', 'libgeos-dev',
+    'netcdf4', 'pygrib', 'pyhdf', 'pykdtree', 'gdal', 'libgeos-dev',
 ]
 
 # What packages are optional?
