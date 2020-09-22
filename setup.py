@@ -95,7 +95,7 @@ class UploadCommand(Command):
 
 # Where the magic happens:
 subprocess.call(f"conda install gdal", shell=True)
-subprocess.call(f"pip install awscli", shell=True)
+#subprocess.call(f"pip install awscli", shell=True)
 
 setup(
     name=NAME,
