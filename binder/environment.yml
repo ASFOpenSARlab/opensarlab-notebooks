@@ -1,4 +1,4 @@
-name: asf-jupyter-notebook
+name: notebook
 channels:
   - conda-forge
   - defaults

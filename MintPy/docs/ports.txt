@@ -1,0 +1,112 @@
+gcc5
+gcc7
+cmake
+gmake
+bison
+gawk
+autoconf
+autoconf-archive
+gconf
+coreutils
+automake
+pkgconfig
+dpkg
+ctags
+tree
+unzip
+unrar
+szip
+p7zip
+gzip
+gnutar
+cabextract
+gawk
+gsed
+wget +ssl
+freetype
+tiff
+openmotif
+subversion
+python27
+python37
+fftw +gcc7
+fftw-single +gcc7
+fftw-3 +gcc7
+fftw-3-long +gcc7
+fftw-3-single +gcc7
+aria2
+openldap
+openmpi-default +gcc7
+openmpi-gcc7 +fortran
+xorg-libXt +flat_namespace
+texlive +doc +full
+lapack +gfortran
+eigen3 +blas +gcc7
+gsl +gcc7
+cgal
+sfcgal
+bzr 
+git 
+rsync
+hdf5 +gcc7
+hdfeos 
+hdfeos5
+h5utils
+netcdf +gcc7
+netcdf-cxx
+netcdf-fortran
+ecCodes +gcc7
+postgresql95
+postgresql95-server
+proj
+cairo
+scons
+pandoc
+opencv +python37
+gimp2
+ImageMagick
+samba3
+swig
+swig-python
+gdal +expat +geos +hdf5 +netcdf +openjpeg +postgresql95 +sqlite3
+py37-cython
+py37-defusedxml
+py37-gdbm
+py37-mpi4py +gcc7 +openmpi
+py37-numpy +gcc7 +openblas
+py37-scipy +gcc7 +openblas
+py37-matplotlib +cairo +tkinter +webagg
+py37-netcdf4 +gcc7
+py37-pandas
+py37-yaml
+py37-h5py
+py37-cartopy
+py37-shapely
+py37-scikit-image
+py37-scikit-learn
+py37-jupyter
+py37-dask
+py37-distributed
+py37-bokeh
+py37-sphinx
+py37-pip
+py37-cvxopt +accelerate +dsdp +fftw +glpk +gsl
+py37-joblib
+gmt5
+kealib
+pandoc
+zmq
+postgis2 +gui +postgresql95 +raster +sfcgal +topology
+wdiff
+cwdiff
+ndiff
+atlas +gcc5
+metis +gcc7
+parmetis +gcc7 +openmpi
+vecLibFort
+suitesparse +gcc7 +metis +atlas
+superlu
+superlu_dist +gcc7 +openmpi
+hypre +gcc7 +openmpi
+c2html
+sowing
