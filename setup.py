@@ -8,6 +8,7 @@ import io
 import os
 import sys
 from shutil import rmtree
+import subprocess
 
 from setuptools import find_packages, setup, Command
 
@@ -22,10 +23,10 @@ VERSION = None
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'cvxopt', 'dask>=1.0', 'dask-jobqueue>=0.3', 'defusedxml', 'h5py', 'lxml', 'matplotlib', 
-    'numpy', 'pyproj', 'pykml', 'pyresample', 'scikit-image', 'scikit-learn', 'scipy',
+    'cvxopt', 'dask>=1.0', 'dask-jobqueue>=0.3', 'defusedxml', 'h5py', 'lxml', 'matplotlib',
+    'pyproj', 'pykml', 'pyresample', 'scikit-image', 'scikit-learn', 'scipy',
     'pandas', 'rasterio', 'scikit-fuzzy', 'cartopy', 'cdsapi', 'cvxopt', 'ecCodes',
-    'netcdf4', 'openmp', 'pygrib', 'pyhdf', 'pykdtree',
+    'netcdf4', 'openmp', 'pygrib', 'pyhdf', 'pykdtree', 'gdal',
 ]
 
 # What packages are optional?
@@ -95,6 +96,7 @@ class UploadCommand(Command):
 
 
 # Where the magic happens:
+subprocess.call(f"pip install numpy", shell=True)
 setup(
     name=NAME,
     version=about['__version__'],
