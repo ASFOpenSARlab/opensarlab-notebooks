@@ -7,9 +7,13 @@
 # Recommend import:
 #   from mintpy import view
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
-import sys
+#import sys
 import re
 import argparse
 import datetime as dt

@@ -6,9 +6,14 @@
 # Email: andretheronsa@gmail.com                           #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 
 import os
-import sys
+#import sys
 import argparse
 import datetime
 import math

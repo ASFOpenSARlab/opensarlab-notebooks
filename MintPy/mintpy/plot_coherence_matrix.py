@@ -5,9 +5,13 @@
 # Author: Zhang Yunjun, Nov 2018                           #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
-import sys
+#import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt

@@ -5,6 +5,10 @@
 # Author: Forrest Williams, Jun 2020                       #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
 import argparse

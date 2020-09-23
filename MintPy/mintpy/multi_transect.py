@@ -5,9 +5,13 @@
 # Author: Heresh Fattahi, 2013                             #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
-import sys
+#import sys
 import getopt
 import h5py
 import numpy as np

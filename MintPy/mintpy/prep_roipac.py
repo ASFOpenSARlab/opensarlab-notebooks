@@ -5,6 +5,10 @@
 # Author: Zhang Yunjun, 2017                               #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
 import shutil

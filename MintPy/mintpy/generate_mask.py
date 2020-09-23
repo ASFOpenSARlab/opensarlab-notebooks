@@ -6,8 +6,13 @@
 ############################################################
 
 
-import os
+## for Binder ##
 import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
+import os
+#import sys
 import time
 import warnings
 import argparse

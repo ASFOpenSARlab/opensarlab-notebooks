@@ -10,6 +10,12 @@ try:
 except ImportError:
     raise ImportError('Can not import pykml!')
 
+
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 import os
 import argparse
 from lxml import etree

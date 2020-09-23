@@ -6,8 +6,12 @@
 ############################################################
 # Modified from _gmt.py, GIANT v1.0, Caltech.
 
-
+## for Binder ##
 import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
+#import sys
 import argparse
 import numpy as np
 from scipy.io import netcdf

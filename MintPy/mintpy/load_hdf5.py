@@ -5,9 +5,14 @@
 # Author: Zhang Yunjun, 2018                               #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 
 import os
-import sys
+#import sys
 import argparse
 import numpy as np
 from mintpy.utils import readfile, writefile

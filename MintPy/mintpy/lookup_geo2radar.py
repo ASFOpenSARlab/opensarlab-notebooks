@@ -5,8 +5,13 @@
 # Author: Yunmeng Cao, Jul 2019                            #
 ############################################################
 
-import os
+## for Binder ##
 import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
+import os
+#import sys
 import argparse
 
 import h5py

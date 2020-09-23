@@ -7,10 +7,14 @@
 # Copyright (c) 2013, Zhang Yunjun, Heresh Fattahi         #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
 import re
-import sys
+#import sys
 import time
 import datetime
 import shutil

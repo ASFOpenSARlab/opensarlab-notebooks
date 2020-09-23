@@ -10,8 +10,13 @@
 # where x is the pixel count in range direction
 
 
-import os
+## for Binder ##
 import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
+import os
+#import sys
 import argparse
 import numpy as np
 from mintpy.objects import timeseries

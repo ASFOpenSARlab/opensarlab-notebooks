@@ -5,6 +5,11 @@
 # Author: Zhang Yunjun, Heresh Fattahi, 2013               #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 
 import os
 import argparse

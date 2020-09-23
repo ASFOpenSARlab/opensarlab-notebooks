@@ -6,6 +6,11 @@
 ############################################################
 
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 import os
 import glob
 import argparse

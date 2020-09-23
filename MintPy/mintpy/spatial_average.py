@@ -5,6 +5,11 @@
 # Author: Zhang Yunjun, 2016                               #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
 
 import argparse
 import matplotlib.pyplot as plt

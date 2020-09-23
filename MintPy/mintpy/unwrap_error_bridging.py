@@ -5,9 +5,13 @@
 # Author: Zhang Yunjun, 2016                               #
 ############################################################
 
+## for Binder ##
+import sys
+sys.path.append('/home/jovyan/MintPy')
+################
 
 import os
-import sys
+#import sys
 import time
 import argparse
 import h5py

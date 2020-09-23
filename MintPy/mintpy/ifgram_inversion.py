@@ -9,8 +9,13 @@
 #     from mintpy import ifgram_inversion as ifginv
 
 
-import os
+## for Binder ##
 import sys
+sys.path.append('/home/jovyan/MintPy')
+################
+
+import os
+#import sys
 import time
 import argparse
 import warnings
