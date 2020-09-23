@@ -12,7 +12,9 @@
 
 ## for Binder ##
 import sys
-sys.path.append('/home/jovyan/MintPy')
+mint_pth = '/home/jovyan/MintPy'
+if mint_pth not in sys.path:
+    sys.path.append(mint_pth)
 ################
 
 import os
