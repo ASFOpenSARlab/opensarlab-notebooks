@@ -391,11 +391,15 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
                 local_queue_id = granules[granule_name]
                 for p_info in products_info:
                     if p_info['local_queue_id'] == local_queue_id:
-                        paths.append(json_response['track'])
-                        directions.append(json_response['flightDirection'])
-                        urls.append(p_info['url'])
+                        try:
+                            paths.append(json_response['track'])
+                            directions.append(json_response['flightDirection'])
+                            urls.append(p_info['url'])
+                        except TypeError:
+                            print(f"TypeError: json_response for {granule_name}: {json_response}")
+                            pass
                         break
-    return {'paths': paths, 'directions': directions, 'urls': urls}  
+    return {'paths': paths, 'directions': directions, 'urls': urls}   
     
 def date_from_product_name(product_name: str) -> str:
     regex = "\w[0-9]{7}T[0-9]{6}"
@@ -459,7 +463,7 @@ def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> lis
     [a,b] = list(selection_range_slider.value)
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
-    return[slider_min, slider_max] 
+    return[slider_min, slider_max]        
 
 
 def get_polarity_from_path(path: str) -> str:
@@ -469,7 +473,7 @@ def get_polarity_from_path(path: str) -> str:
     """
     path = os.path.basename(path)
     regex = "(v|V|h|H){2}"
-    return re.search(regex, path).group(0)       
+    return re.search(regex, path).group(0)
                                            
             
 def get_RTC_polarizations(base_path: str) -> list:
