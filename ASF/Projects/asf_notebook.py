@@ -391,11 +391,15 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
                 local_queue_id = granules[granule_name]
                 for p_info in products_info:
                     if p_info['local_queue_id'] == local_queue_id:
-                        paths.append(json_response['track'])
-                        directions.append(json_response['flightDirection'])
-                        urls.append(p_info['url'])
+                        try:
+                            paths.append(json_response['track'])
+                            directions.append(json_response['flightDirection'])
+                            urls.append(p_info['url'])
+                        except TypeError:
+                            print(f"TypeError: json_response for {granule_name}: {json_response}")
+                            pass
                         break
-    return {'paths': paths, 'directions': directions, 'urls': urls}  
+    return {'paths': paths, 'directions': directions, 'urls': urls}   
     
 def date_from_product_name(product_name: str) -> str:
     regex = "\w[0-9]{7}T[0-9]{6}"
