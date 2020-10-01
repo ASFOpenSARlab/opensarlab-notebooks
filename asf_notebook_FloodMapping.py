@@ -7,6 +7,11 @@
 
 import os
 
+class NoHANDLayerException(Exception):
+    """
+    Raised when expecting path to HAND layer but none found
+    """
+    pass
     
 def input_path(prompt):        
     print(f"Current working directory: {os.getcwd()}") 
