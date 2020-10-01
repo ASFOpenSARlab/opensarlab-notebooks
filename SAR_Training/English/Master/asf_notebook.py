@@ -168,6 +168,33 @@ def handle_old_data(data_dir, contents):
         if selection < 1 or selection > 3:
              continue
         return selection
+    
+    
+#########################
+#  OpenSARlab Functions #
+#########################
+
+
+def jupytertheme_matplotlib_format() -> bool:
+    """
+    If recognised jupytertheme dark mode is being used,
+    reformat matplotlib settings for improved dark mode visibility.
+    Return True if matplotlib settings adjusted or False if not
+    """
+    try:
+        from jupyterthemes import jtplot
+        print(f"jupytertheme style: {jtplot.infer_theme()}")
+        if jtplot.infer_theme() in ('osl_dark', 'onedork'):
+            plt.rcParams.update({'hatch.color': 'white'})
+            plt.rcParams.update({'axes.facecolor': 'lightgrey'})
+            plt.rcParams.update({'axes.labelcolor': 'white'})
+            plt.rcParams.update({'xtick.color': 'lightgrey'})
+            plt.rcParams.update({'ytick.color': 'lightgrey'})
+            return True
+    except ModuleNotFoundError:
+        print("jupytertheme not installed")
+        pass
+    return False
 
               
 ###################
@@ -536,11 +563,11 @@ class AOI_Selector:
         display(Markdown(f'<text style=color:blue>- You can also zoom with a selection box using the zoom to rectangle tool.</text>'))
         display(Markdown(f'<text style=color:blue>- To turn off the pan or zoom to rectangle tool so you can select an AOI, click the selected tool button again.</text>'))
         
-        display(Markdown(f'<text style=color:red><b>IMPORTANT!</b></text>'))
-        display(Markdown(f'<text style=color:red>- Upon loading the AOI selector, the selection tool is already active.</text>'))
-        display(Markdown(f'<text style=color:red>- Click, drag, and release the left mouse button to select an area.</text>'))
-        display(Markdown(f'<text style=color:red>- The square tool icon in the menu is <b>NOT</b> the selection tool. It is the zoom tool.</text>'))
-        display(Markdown(f'<text style=color:red>- If you select any tool, you must toggle it off before you can select an AOI</text>'))
+        display(Markdown(f'<text style=color:darkred><b>IMPORTANT!</b></text>'))
+        display(Markdown(f'<text style=color:darkred>- Upon loading the AOI selector, the selection tool is already active.</text>'))
+        display(Markdown(f'<text style=color:darkred>- Click, drag, and release the left mouse button to select an area.</text>'))
+        display(Markdown(f'<text style=color:darkred>- The square tool icon in the menu is <b>NOT</b> the selection tool. It is the zoom tool.</text>'))
+        display(Markdown(f'<text style=color:darkred>- If you select any tool, you must toggle it off before you can select an AOI</text>'))
         self.image = image
         self.x1 = None
         self.y1 = None
