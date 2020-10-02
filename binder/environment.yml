@@ -6,7 +6,7 @@ dependencies:
   - pip
   - numpy
   - matplotlib
-  - gdal
+  - gdal=3.0.2
   - pandas
   - pip:
       - awscli
