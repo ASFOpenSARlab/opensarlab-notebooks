@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_ExploreSARTimeSeriesFlood?filepath=Exercise3A-ExploreSARTimeSeriesFlood.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_SARHazards_Lab_ExploreTimeSeries?filepath=SARHazards_Lab_ExploreTimeSeries.ipynb)
 
 # ASF Jupyter Notebooks
 
