@@ -346,7 +346,6 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, 
     assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
     assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'               
 
-    login.api.url = "http://hyp3-api-prod.us-east-1.elasticbeanstalk.com/"
     products = []
     page_count = 0
     while True:       
