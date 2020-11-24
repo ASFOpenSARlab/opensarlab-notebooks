@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 9-10-2020
+# 11-26-2020
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -444,18 +444,18 @@ def get_products_dates(products_info: list) -> list:
                 break
     dates.sort()
     return dates
-            
-            
+
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
-        date_regex = "\w[0-9]{7}T[0-9]{6}(-|_)[0-9]{8}T[0-9]{6}"
-        date_str = re.search(date_regex, info['granule'])
-        if date_str:
-            dates.append(date_str.group(0)[0:8])
-            dates.append(date_str.group(0)[16:24])
+        date_regex = "\w[0-9]{7}T[0-9]{6}"
+        date_strs = re.findall(date_regex, info['granule'])
+        if date_strs:
+            for d in date_strs:
+                dates.append(d[0:8])
     dates.sort()
-    return dates   
+    dates = list(set(dates))
+    return dates
          
     
 ######################################
