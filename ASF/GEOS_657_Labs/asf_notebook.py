@@ -438,13 +438,17 @@ def date_from_product_name(product_name: str) -> str:
 def get_products_dates(products_info: list) -> list:
     dates = []
     for info in products_info:
-        for chunk in info['name'].split('_'):
-            if len(chunk) == 15 and 'T' in chunk:
-                dates.append(chunk[:8])
-                break
+        date_regex = "\w[0-9]{7}T[0-9]{6}"
+        date_strs = re.findall(date_regex, info['granule'])
+        if date_strs:
+            for d in date_strs:
+                dates.append(d[0:8])
     dates.sort()
+    dates = list(set(dates))
     return dates
-
+    
+# get_products_dates_insar will be deprecated in the 
+# near future as it is now duplicted in get_products_dates
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
     for info in products_info:
