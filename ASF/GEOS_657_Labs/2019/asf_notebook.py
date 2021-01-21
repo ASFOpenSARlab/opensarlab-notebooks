@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 11-26-2020
+# 1-21-21
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -100,29 +100,28 @@ def asf_unzip(output_dir: str, file_path: str):
             return
 
         
-def get_power_set(my_set, set_size): 
+def get_power_set(my_set, set_size=None):
+    """
+    my_set: list or set of strings
+    set_size: deprecated, kept as optional for backwards compatibility
+    returns: the power set of input strings
+    """
     p_set = set()
-    # set_size of power set of a set 
-    # with set_size n is (2**n -1) 
-    pow_set_size = (int) (math.pow(2, set_size)); 
-    counter = 0; 
-    j = 0; 
-    # Run from counter 000..0 to 111..1 
-    for counter in range(0, pow_set_size):
-        temp = ""
-        for j in range(0, set_size): 
-              
-            # Check if jth bit in the  
-            # counter is set If set then  
-            # print jth element from set 
-            if((counter & (1 << j)) > 0):
+    if len(my_set) > 1:
+        pow_set_size = 1 << len(my_set) # 2^n
+        for counter in range(0, pow_set_size):
+            temp = ""
+            for j in range(0, set_size): 
+                if(counter & (1 << j) > 0):
+                    if temp != "":
+                        temp = f"{temp} and {my_set[j]}"
+                    else:
+                        temp = my_set[j]
                 if temp != "":
-                    temp = f"{temp} and {my_set[j]}"
-                else:
-                    temp = my_set[j]
-            if temp != "":
-                p_set.add(temp)
-    return p_set        
+                    p_set.add(temp)
+    else:
+        p_set = set(my_set)
+    return p_set      
         
     
 def remove_nan_filled_tifs(tif_dir: str, file_names: list):
