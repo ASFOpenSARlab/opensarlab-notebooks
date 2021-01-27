@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 1-21-21
+# 1-26-21
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
 
 
@@ -111,7 +111,7 @@ def get_power_set(my_set, set_size=None):
         pow_set_size = 1 << len(my_set) # 2^n
         for counter in range(0, pow_set_size):
             temp = ""
-            for j in range(0, set_size): 
+            for j in range(0, len(my_set)): 
                 if(counter & (1 << j) > 0):
                     if temp != "":
                         temp = f"{temp} and {my_set[j]}"
@@ -121,7 +121,7 @@ def get_power_set(my_set, set_size=None):
                     p_set.add(temp)
     else:
         p_set = set(my_set)
-    return p_set      
+    return p_set     
         
     
 def remove_nan_filled_tifs(tif_dir: str, file_names: list):
