@@ -17,10 +17,10 @@ The following is a non-exhaustive list of installed commonly used python and non
 
 Python Tools
 - python 3.7
-- numpy 
-- matplotlib
-- scikit-fuzzy
-- pandas 
-- gdal
-- pyproj
-- rasterio 
+- numpy 1.19.1
+- matplotlib 3.3.2
+- scikit-fuzzy 0.4.2
+- pandas 1.1.3
+- gdal 3.1.3
+- pyproj 2.6.1.post1
+- rasterio 1.1.7
