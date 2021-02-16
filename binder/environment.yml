@@ -12,4 +12,4 @@ dependencies:
   - scikit-fuzzy=0.4.2
   - pyproj=2.6.1.post1
   - pip:
-      - awscli=1.18.156
+      - awscli==1.18.156
