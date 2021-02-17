@@ -8,6 +8,7 @@ import math
 import os  # for chdir, getcwd, path.exists
 import re
 import time  # for perf_counter
+from typing import List
 import requests  # for post, get
 from getpass import getpass  # used to input URS creds and add to .netrc
 import zipfile  # for extractall, ZipFile, BadZipFile
@@ -35,6 +36,10 @@ import ipywidgets as widgets
 from ipywidgets import Layout
 
 from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
+
+from hyp3_sdk import HyP3
+from hyp3_sdk import asf_search
+from hyp3_sdk import Batch
 
 from bokeh.plotting import figure
 from bokeh.tile_providers import get_provider, Vendors
@@ -306,9 +311,9 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
             print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
         
 
-#######################
-#  Hyp3 API Functions #
-#######################
+#########################
+#  Hyp3v1 API Functions #
+#########################
 
                         
 def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
@@ -381,6 +386,73 @@ def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLog
 def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
     cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
     return cmd        
+
+
+#########################
+#  Hyp3v2 API Functions #
+#########################
+
+def hyp3_auth() -> HyP3:
+    exception = None
+    while True:
+        if exception:
+            print(exception)
+            print("Please try again.")
+        username = input("Username: ")
+        password = getpass("Password: ")
+        try:
+            hyp3 = HyP3(username=username, password=password)
+            clear_output()
+            print("Authentication Successful")
+            return hyp3
+        except Exception as e:
+            exception = e
+            clear_output()
+            
+def get_RTC_projects(hyp3):
+    return hyp3.my_info()['job_names']
+            
+def get_job_dates(jobs: List[str]) -> List[str]:
+    dates = set()
+    for job in jobs:
+        for granule in job.job_parameters['granules']:
+            dates.add(date_from_product_name(granule).split('T')[0])
+    return list(dates)
+
+def filter_jobs_by_date(jobs: Batch, date_range: list) -> Batch:
+    remaining_jobs = Batch()
+    for job in jobs:
+        for granule in job.job_parameters['granules']:
+            dt = date_from_product_name(granule).split('T')[0]
+            aquistion_date = date(int(dt[:4]), int(dt[4:6]), int(dt[-2:]))
+            if date_range[0] <= aquistion_date <= date_range[1]:
+                remaining_jobs += job
+                break
+    return remaining_jobs
+
+def get_paths_orbits(jobs: Batch):
+    vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
+    for job in jobs:
+        granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
+        job.path = granule_metadata['path']
+        job.orbit_direction = granule_metadata['flightDirection']
+    return jobs
+
+def filter_jobs_by_path(jobs: Batch, paths: List[str]) -> Batch:
+    if 'All Paths' in paths:
+        return jobs
+    remaining_jobs = Batch()
+    for job in jobs:
+        if job.path in paths:
+            remaining_jobs += job
+    return remaining_jobs
+
+def filter_jobs_by_orbit(jobs: Batch, orbit_direction: str) -> Batch:
+    remaining_jobs = Batch()
+    for job in jobs:
+        if job.orbit_direction == orbit_direction:
+            remaining_jobs += job
+    return remaining_jobs
 
 
 #######################################
