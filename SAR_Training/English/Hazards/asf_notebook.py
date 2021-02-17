@@ -1,7 +1,7 @@
 # asf_notebook.py
 # Alex Lewandowski
 # 1-26-21
-# Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions 
+# Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
 import math
@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 from matplotlib.widgets import RectangleSelector
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
 
 from IPython.utils.text import SList
@@ -68,14 +68,14 @@ def path_exists(path: str) -> bool:
         print(f"Invalid Path: {path}")
         return False
 
-    
+
 def new_directory(path: str):
     """
     Takes a path for a new or existing directory. Creates directory
     and sub-directories if not already present.
     """
     assert type(path) == str
-    
+
     if os.path.exists(path):
         print(f"{path} already exists.")
     else:
@@ -83,7 +83,7 @@ def new_directory(path: str):
         print(f"Created: {path}")
     if not os.path.exists(path):
         print(f"Failed to create path!")
-        
+
 
 def asf_unzip(output_dir: str, file_path: str):
     """
@@ -104,7 +104,7 @@ def asf_unzip(output_dir: str, file_path: str):
                 print(f"Zipfile Error.")
             return
 
-        
+
 def get_power_set(my_set, set_size=None):
     """
     my_set: list or set of strings
@@ -116,7 +116,7 @@ def get_power_set(my_set, set_size=None):
         pow_set_size = 1 << len(my_set) # 2^n
         for counter in range(0, pow_set_size):
             temp = ""
-            for j in range(0, len(my_set)): 
+            for j in range(0, len(my_set)):
                 if(counter & (1 << j) > 0):
                     if temp != "":
                         temp = f"{temp} and {my_set[j]}"
@@ -126,18 +126,18 @@ def get_power_set(my_set, set_size=None):
                     p_set.add(temp)
     else:
         p_set = set(my_set)
-    return p_set     
-        
-    
+    return p_set
+
+
 def remove_nan_filled_tifs(tif_dir: str, file_names: list):
     """
     Takes a path to a directory containing tifs and
     and a list of the tif filenames.
-    Deletes any tifs containing only NaN values.  
+    Deletes any tifs containing only NaN values.
     """
     assert type(tif_dir) == str, 'Error: tif_dir must be a string'
     assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
-    
+
     removed = 0
     for tiff in file_names:
         raster = gdal.Open(f"{tif_dir}{tiff}")
@@ -148,10 +148,10 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: list):
                 removed += 1
     print(f"GeoTiffs Examined: {len(file_names)}")
     print(f"GeoTiffs Removed:  {removed}")
-    
-    
-def input_path(prompt):        
-    print(f"Current working directory: {os.getcwd()}") 
+
+
+def input_path(prompt):
+    print(f"Current working directory: {os.getcwd()}")
     print(prompt)
     return input()
 
@@ -172,8 +172,8 @@ def handle_old_data(data_dir, contents):
         if selection < 1 or selection > 3:
              continue
         return selection
-    
-    
+
+
 #########################
 #  OpenSARlab Functions #
 #########################
@@ -200,11 +200,11 @@ def jupytertheme_matplotlib_format() -> bool:
         pass
     return False
 
-              
+
 ###################
 #  GDAL Functions #
 ###################
-              
+
 def vrt_to_gtiff(vrt: str, output: str):
     if '.vrt' not in vrt:
         print('Error: The path to your vrt does not contain a ".vrt" extension.')
@@ -215,19 +215,19 @@ def vrt_to_gtiff(vrt: str, output: str):
         print('Error: the output argument must either not contain a ' /
               'file extension, or have a "tif" or "tiff" file extension.')
         return
-        
+
     cmd = f"gdal_translate -co \"COMPRESS=DEFLATE\" -a_nodata 0 {vrt} {output}"
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
-              
+
 #########################
 #  Earthdata Auth Class #
 #########################
 
 class EarthdataLogin:
-  
+
     def __init__(self, username=None, password=None):
-              
+
         """
         takes user input to login to NASA Earthdata
         updates .netrc with user credentials
@@ -250,7 +250,7 @@ class EarthdataLogin:
             except Exception:
                 raise
             else:
-                try: 
+                try:
                     api.login(password)
                 except LoginError as e:
                     err = e
@@ -271,11 +271,11 @@ class EarthdataLogin:
 
 
     def login(self):
-        try: 
+        try:
             self.api.login(self.password)
         except LoginError:
             raise
-              
+
 
 #########################
 #  Vertex API Functions #
@@ -294,7 +294,7 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
     assert type(processing_level) == str, 'Error: processing_level must be a string.'
 
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try: 
+    try:
         response = requests.post(
             vertex_API_URL,
             params=[('granule_list', granule_name), ('output', 'json'),
@@ -309,21 +309,21 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
             return json_response
         else:
             print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-        
+
 
 #########################
 #  Hyp3v1 API Functions #
 #########################
 
-                        
+
 def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
     """
     Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
     Returns None if there are no enabled subscriptions associated with Hyp3 account.
     """
-    
-    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'    
-    
+
+    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'
+
     while True:
         subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
         try:
@@ -342,17 +342,17 @@ def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
     else:
         for sub in subscriptions:
             subs.append(f"{sub['id']}: {sub['name']}")
-    return subs                        
-                        
+    return subs
+
 
 def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
-                        
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'               
+
+    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
+    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
 
     products = []
     page_count = 0
-    while True:       
+    while True:
         product_page = login.api.get_products(
             sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
         try:
@@ -362,20 +362,20 @@ def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, 
                 login.api.api = creds['api_key']
                 continue
         except (KeyError, TypeError):
-            page_count += 1           
+            page_count += 1
             pass
         if not product_page:
             break
         for product in product_page:
             products.append(product)
-    return products   
+    return products
 
 
 def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLogin) -> dict:
-                        
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'                      
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'                     
-                           
+
+    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
+    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
+
     jobs_list = login.api.get_jobs(sub_id=subscription_id)
     granules = dict()
     for job in jobs_list:
@@ -385,7 +385,7 @@ def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLog
 
 def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
     cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd        
+    return cmd
 
 
 #########################
@@ -408,10 +408,10 @@ def hyp3_auth() -> HyP3:
         except Exception as e:
             exception = e
             clear_output()
-            
+
 def get_RTC_projects(hyp3):
     return hyp3.my_info()['job_names']
-            
+
 def get_job_dates(jobs: List[str]) -> List[str]:
     dates = set()
     for job in jobs:
@@ -459,7 +459,7 @@ def filter_jobs_by_orbit(jobs: Batch, orbit_direction: str) -> Batch:
 #   Product Related Utility Functions #
 #######################################
 
-def get_product_info(granules: dict, products_info: list, date_range: list) -> dict:               
+def get_product_info(granules: dict, products_info: list, date_range: list) -> dict:
     paths = []
     directions = []
     urls = []
@@ -481,7 +481,7 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
                     )
                 except requests.exceptions.RequestException as e:
                     print(e)
-                    sys.exit(1)               
+                    sys.exit(1)
                 json_response = None
                 if response.json()[0]:
                     json_response = response.json()[0][0]
@@ -496,8 +496,8 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
                             print(f"TypeError: json_response for {granule_name}: {json_response}")
                             pass
                         break
-    return {'paths': paths, 'directions': directions, 'urls': urls}   
-    
+    return {'paths': paths, 'directions': directions, 'urls': urls}
+
 def date_from_product_name(product_name: str) -> str:
     regex = "\w[0-9]{7}T[0-9]{6}"
     results = re.search(regex, product_name)
@@ -517,8 +517,8 @@ def get_products_dates(products_info: list) -> list:
     dates.sort()
     dates = list(set(dates))
     return dates
-    
-# get_products_dates_insar will be deprecated in the 
+
+# get_products_dates_insar will be deprecated in the
 # near future as it is now duplicted in get_products_dates
 def get_products_dates_insar(products_info: list) -> list:
     dates = []
@@ -531,40 +531,40 @@ def get_products_dates_insar(products_info: list) -> list:
     dates.sort()
     dates = list(set(dates))
     return dates
-         
-    
+
+
 ######################################
 #  Jupyter Notebook Widget Functions #
 ######################################
-            
-    
-def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:  
+
+
+def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:
     start_date = datetime.strptime(min(dates), '%Y%m%d')
     end_date = datetime.strptime(max(dates), '%Y%m%d')
     date_range = pd.date_range(start_date, end_date, freq='D')
     options = [(date.strftime(' %m/%d/%Y '), date) for date in date_range]
     index = (0, len(options)-1)
-    
+
     selection_range_slider = widgets.SelectionRangeSlider(
     options = options,
     index = index,
     description = 'Dates',
     orientation = 'horizontal',
     layout = {'width': '500px'})
-    return(selection_range_slider)  
-          
-                     
+    return(selection_range_slider)
+
+
 def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> list:
     '''Returns the minimum and maximum dates retrieved from the
     interactive time slider.
-    
+
     Parameters:
     - selection_range_slider: Handle of the interactive time slider
     '''
     [a,b] = list(selection_range_slider.value)
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
-    return[slider_min, slider_max]        
+    return[slider_min, slider_max]
 
 
 def get_polarity_from_path(path: str) -> str:
@@ -575,8 +575,8 @@ def get_polarity_from_path(path: str) -> str:
     path = os.path.basename(path)
     regex = "(v|V|h|H){2}"
     return re.search(regex, path).group(0)
-                                           
-            
+
+
 def get_RTC_polarizations(base_path: str) -> list:
     """
     Takes a string path to a directory containing RTC product directories
@@ -595,10 +595,10 @@ def get_RTC_polarizations(base_path: str) -> list:
     if len(paths) > 0:
         return list(set(paths))
     else:
-        print(f"Error: found no available polarizations.")                          
-            
-            
-def select_parameter(things: set, description=""):
+        print(f"Error: found no available polarizations.")
+
+
+def select_parameter(things, description=""):
     return widgets.RadioButtons(
         options=things,
         description=description,
@@ -606,24 +606,24 @@ def select_parameter(things: set, description=""):
         layout=Layout(min_width='800px')
     )
 
- 
-            
-def select_mult_parameters(things: set, description=""):
+
+
+def select_mult_parameters(things, description=""):
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
         description=description,
         disabled=False,
         layout=widgets.Layout(height=f"{height}px", width='175px')
-    )                      
-         
+    )
+
 
 ########################################
 #  Subset AOI Selector #
 ########################################
-    
+
 class AOI_Selector:
-    def __init__(self, 
+    def __init__(self,
                  image,
                  fig_xsize=None, fig_ysize=None,
                  cmap=plt.cm.gist_gray,
@@ -636,7 +636,7 @@ class AOI_Selector:
         display(Markdown(f'<text style=color:blue>- Use the pan tool to zoom with the right mouse button.</text>'))
         display(Markdown(f'<text style=color:blue>- You can also zoom with a selection box using the zoom to rectangle tool.</text>'))
         display(Markdown(f'<text style=color:blue>- To turn off the pan or zoom to rectangle tool so you can select an AOI, click the selected tool button again.</text>'))
-        
+
         display(Markdown(f'<text style=color:darkred><b>IMPORTANT!</b></text>'))
         display(Markdown(f'<text style=color:darkred>- Upon loading the AOI selector, the selection tool is already active.</text>'))
         display(Markdown(f'<text style=color:darkred>- Click, drag, and release the left mouse button to select an area.</text>'))
@@ -656,9 +656,9 @@ class AOI_Selector:
         else:
             self.vmax = vmax
         if fig_xsize and fig_ysize:
-            self.fig, self.current_ax = plt.subplots(figsize=(fig_xsize, fig_ysize)) 
+            self.fig, self.current_ax = plt.subplots(figsize=(fig_xsize, fig_ysize))
         else:
-            self.fig, self.current_ax = plt.subplots() 
+            self.fig, self.current_ax = plt.subplots()
         self.fig.suptitle('Area-Of-Interest Selector', fontsize=16)
         self.current_ax.imshow(self.image, cmap=plt.cm.gist_gray, vmin=self.vmin, vmax=self.vmax)
 
@@ -671,13 +671,13 @@ class AOI_Selector:
             if event.key in ['A', 'a'] and not toggle_selector.RS.active:
                 print(' RectangleSelector activated.')
                 toggle_selector.RS.set_active(True)
-                
+
         toggle_selector.RS = RectangleSelector(self.current_ax, self.line_select_callback,
                                                drawtype='box', useblit=True,
                                                button=[1, 3],  # don't use middle button
                                                minspanx=5, minspany=5,
                                                spancoords='pixels',
-                                               rectprops = dict(facecolor='red', edgecolor = 'yellow', 
+                                               rectprops = dict(facecolor='red', edgecolor = 'yellow',
                                                                 alpha=0.3, fill=True),
                                                interactive=True)
         plt.connect('key_press_event', toggle_selector)
@@ -687,4 +687,4 @@ class AOI_Selector:
         self.x1, self.y1 = eclick.xdata, eclick.ydata
         self.x2, self.y2 = erelease.xdata, erelease.ydata
         print("(%3.2f, %3.2f) --> (%3.2f, %3.2f)" % (self.x1, self.y1, self.x2, self.y2))
-        print(" The button you used were: %s %s" % (eclick.button, erelease.button))          
+        print(" The button you used were: %s %s" % (eclick.button, erelease.button))
