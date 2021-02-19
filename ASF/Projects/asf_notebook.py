@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 1-26-21
+# 2-18-21
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -37,18 +37,9 @@ from ipywidgets import Layout
 
 from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
 
-from hyp3_sdk import HyP3
-from hyp3_sdk import asf_search
-from hyp3_sdk import Batch
-
-from bokeh.plotting import figure
-from bokeh.tile_providers import get_provider, Vendors
-from bokeh.models import ColumnDataSource, GMapOptions, BoxSelectTool, HoverTool, CustomJSHover, CustomJS, Rect, Div, ResetTool, MultiPolygons
-from bokeh.client import push_session
-from bokeh.io import curdoc, output_notebook, push_notebook, show
-from bokeh import events
-from bokeh.models.glyphs import Rect
-
+# from hyp3_sdk import HyP3
+# from hyp3_sdk import asf_search
+# from hyp3_sdk import Batch
 
 #######################
 #  Utility Functions  #
@@ -392,7 +383,8 @@ def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
 #  Hyp3v2 API Functions #
 #########################
 
-def hyp3_auth() -> HyP3:
+def hyp3_auth():
+    from hyp3_sdk import HyP3
     exception = None
     while True:
         if exception:
@@ -419,7 +411,8 @@ def get_job_dates(jobs: List[str]) -> List[str]:
             dates.add(date_from_product_name(granule).split('T')[0])
     return list(dates)
 
-def filter_jobs_by_date(jobs: Batch, date_range: list) -> Batch:
+def filter_jobs_by_date(jobs, date_range):
+    from hyp3_sdk import Batch
     remaining_jobs = Batch()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -430,7 +423,9 @@ def filter_jobs_by_date(jobs: Batch, date_range: list) -> Batch:
                 break
     return remaining_jobs
 
-def get_paths_orbits(jobs: Batch):
+def get_paths_orbits(jobs):
+    from hyp3_sdk import Batch
+    from hyp3_sdk import asf_search
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
         granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
@@ -438,7 +433,8 @@ def get_paths_orbits(jobs: Batch):
         job.orbit_direction = granule_metadata['flightDirection']
     return jobs
 
-def filter_jobs_by_path(jobs: Batch, paths: List[str]) -> Batch:
+def filter_jobs_by_path(jobs, paths):
+    from hyp3_sdk import Batch
     if 'All Paths' in paths:
         return jobs
     remaining_jobs = Batch()
@@ -447,7 +443,8 @@ def filter_jobs_by_path(jobs: Batch, paths: List[str]) -> Batch:
             remaining_jobs += job
     return remaining_jobs
 
-def filter_jobs_by_orbit(jobs: Batch, orbit_direction: str) -> Batch:
+def filter_jobs_by_orbit(jobs, orbit_direction):
+    from hyp3_sdk import Batch
     remaining_jobs = Batch()
     for job in jobs:
         if job.orbit_direction == orbit_direction:
