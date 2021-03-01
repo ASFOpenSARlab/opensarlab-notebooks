@@ -19,9 +19,10 @@ import urllib
 import subprocess
 import json
 
-import gdal  # for Open
 import numpy as np
 import pandas as pd
+from osgeo import gdal # for Open
+
 
 from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
