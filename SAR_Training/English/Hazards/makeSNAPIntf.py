@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import re,sys,os,glob
+import os,glob
 import numpy as np
 import saa_func_lib as saa
 
