@@ -1,13 +1,11 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 2-18-21
+# 4-15-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
-import math
 import os  # for chdir, getcwd, path.exists
 import re
-import time  # for perf_counter
 from typing import List
 import requests  # for post, get
 from getpass import getpass  # used to input URS creds and add to .netrc
@@ -15,11 +13,9 @@ import zipfile  # for extractall, ZipFile, BadZipFile
 from datetime import datetime, date
 import glob
 import sys
-import urllib
 import subprocess
-import json
 
-import gdal  # for Open
+from osgeo import gdal  # for Open
 import numpy as np
 import pandas as pd
 
@@ -27,7 +23,6 @@ from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
 
-from IPython.utils.text import SList
 from IPython.display import clear_output
 from IPython.display import Markdown
 from IPython.display import display
