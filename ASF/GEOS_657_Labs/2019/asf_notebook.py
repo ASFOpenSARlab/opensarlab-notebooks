@@ -32,9 +32,9 @@ from ipywidgets import Layout
 
 from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
 
-# from hyp3_sdk import HyP3
-# from hyp3_sdk import asf_search
-# from hyp3_sdk import Batch
+from hyp3_sdk import HyP3
+from hyp3_sdk import asf_search
+from hyp3_sdk import Batch
 
 #######################
 #  Utility Functions  #
@@ -379,7 +379,6 @@ def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
 #########################
 
 def hyp3_auth():
-    from hyp3_sdk import HyP3
     exception = None
     while True:
         if exception:
@@ -407,7 +406,6 @@ def get_job_dates(jobs: List[str]) -> List[str]:
     return list(dates)
 
 def filter_jobs_by_date(jobs, date_range):
-    from hyp3_sdk import Batch
     remaining_jobs = Batch()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -419,8 +417,6 @@ def filter_jobs_by_date(jobs, date_range):
     return remaining_jobs
 
 def get_paths_orbits(jobs):
-    from hyp3_sdk import Batch
-    from hyp3_sdk import asf_search
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
         granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
@@ -429,7 +425,6 @@ def get_paths_orbits(jobs):
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
-    from hyp3_sdk import Batch
     if 'All Paths' in paths:
         return jobs
     remaining_jobs = Batch()
@@ -439,7 +434,6 @@ def filter_jobs_by_path(jobs, paths):
     return remaining_jobs
 
 def filter_jobs_by_orbit(jobs, orbit_direction):
-    from hyp3_sdk import Batch
     remaining_jobs = Batch()
     for job in jobs:
         if job.orbit_direction == orbit_direction:
