@@ -378,23 +378,6 @@ def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
 #  Hyp3v2 API Functions #
 #########################
 
-def hyp3_auth():
-    exception = None
-    while True:
-        if exception:
-            print(exception)
-            print("Please try again.")
-        username = input("Username: ")
-        password = getpass("Password: ")
-        try:
-            hyp3 = HyP3(username=username, password=password)
-            clear_output()
-            print("Authentication Successful")
-            return hyp3
-        except Exception as e:
-            exception = e
-            clear_output()
-
 def get_RTC_projects(hyp3):
     return hyp3.my_info()['job_names']
 
