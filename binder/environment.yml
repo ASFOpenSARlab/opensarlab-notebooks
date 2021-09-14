@@ -11,5 +11,7 @@ dependencies:
   - rasterio=1.1.7
   - scikit-fuzzy=0.4.2
   - pyproj=2.6.1.post1
+  - nodejs
+  - ipympl
   - pip:
       - awscli==1.18.156
