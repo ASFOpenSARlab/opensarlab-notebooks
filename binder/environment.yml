@@ -2,11 +2,11 @@ name: asf-jupyter-notebook
 channels:
   - conda-forge
 dependencies:
-  - python=3.7
+  - python
   - pip
   - numpy
   - matplotlib
-  - gdal=3.0.2
+  - gdal
   - pandas
   - pip:
       - awscli
