@@ -1,6 +1,6 @@
 #!/bin/bash
 
--set ex
+set -ex
 
 jupyter labextension install @jupyter-widgets/jupyterlab-manager
 jupyter labextension install jupyter-matplotlib
