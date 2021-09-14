@@ -30,6 +30,6 @@ dependencies:
   - scikit-image
   - scikit-learn
   - scipy
+  - mintpy
   - pip:
       - awscli
-      - git+https://github.com/tylere/pykml.git
