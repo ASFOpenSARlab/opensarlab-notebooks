@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski
-# 4-15-2021
+# 9-30-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -23,18 +23,16 @@ from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
 
-from IPython.display import clear_output
 from IPython.display import Markdown
 from IPython.display import display
 
 import ipywidgets as widgets
 from ipywidgets import Layout
 
-from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
-
-from hyp3_sdk import HyP3
 from hyp3_sdk import asf_search
 from hyp3_sdk import Batch
+
+import asf_search as asf
 
 #######################
 #  Utility Functions  #
@@ -206,68 +204,12 @@ def vrt_to_gtiff(vrt: str, output: str):
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
 
-#########################
-#  Earthdata Auth Class #
-#########################
-
-class EarthdataLogin:
-
-    def __init__(self, username=None, password=None):
-
-        """
-        takes user input to login to NASA Earthdata
-        updates .netrc with user credentials
-        returns an api object
-        note: Earthdata's EULA applies when accessing ASF APIs
-              Hyp3 API handles HTTPError and LoginError
-        """
-        err = None
-        while True:
-            if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
-                print(err)
-                print("Please Try again.\n")
-            if not username or not password:
-                print(f"Enter your NASA EarthData username:")
-                username = input()
-                print(f"Enter your password:")
-                password = getpass()
-            try:
-                api = API(username) # asf_hyp3 function
-            except Exception:
-                raise
-            else:
-                try:
-                    api.login(password)
-                except LoginError as e:
-                    err = e
-                    clear_output()
-                    username = None
-                    password = None
-                    continue
-                except Exception:
-                    raise
-                else:
-                    clear_output()
-                    print(f"Login successful.")
-                    print(f"Welcome {username}.")
-                    self.username = username
-                    self.password = password
-                    self.api = api
-                    break
-
-
-    def login(self):
-        try:
-            self.api.login(self.password)
-        except LoginError:
-            raise
-
 
 #########################
 #  Vertex API Functions #
 #########################
 
-
+# Obsolete - change here
 def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
     """
     Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
@@ -298,83 +240,6 @@ def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
 
 
 #########################
-#  Hyp3v1 API Functions #
-#########################
-
-
-def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
-    """
-    Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
-    Returns None if there are no enabled subscriptions associated with Hyp3 account.
-    """
-
-    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'
-
-    while True:
-        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
-        try:
-            if subscriptions['status'] == 'ERROR' and \
-                  subscriptions['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-        except (KeyError, TypeError):
-            break
-    subs = []
-    if not subscriptions:
-        if not group_id:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}")
-        else:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
-    else:
-        for sub in subscriptions:
-            subs.append(f"{sub['id']}: {sub['name']}")
-    return subs
-
-
-def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    products = []
-    page_count = 0
-    while True:
-        product_page = login.api.get_products(
-            sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
-        try:
-            if product_page['status'] == 'ERROR'and \
-                  product_page['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-                continue
-        except (KeyError, TypeError):
-            page_count += 1
-            pass
-        if not product_page:
-            break
-        for product in product_page:
-            products.append(product)
-    return products
-
-
-def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLogin) -> dict:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    jobs_list = login.api.get_jobs(sub_id=subscription_id)
-    granules = dict()
-    for job in jobs_list:
-        granules.update({job['granule']: job['id']})
-    return granules
-
-
-def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
-    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd
-
-
-#########################
 #  Hyp3v2 API Functions #
 #########################
 
@@ -402,9 +267,9 @@ def filter_jobs_by_date(jobs, date_range):
 def get_paths_orbits(jobs):
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
-        granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
-        job.path = granule_metadata['path']
-        job.orbit_direction = granule_metadata['flightDirection']
+        granule_metadata = asf.granule_search(job.job_parameters['granules'])[0]
+        job.path = granule_metadata.properties['pathNumber']
+        job.orbit_direction = granule_metadata.properties['flightDirection']
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
