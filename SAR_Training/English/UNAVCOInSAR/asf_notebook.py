@@ -1,6 +1,6 @@
 # asf_notebook.py
-# Alex Lewandowski
-# 9-30-2021
+# Alex Lewandowski, Rui Kawahara
+# Oct-11-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -31,6 +31,8 @@ from ipywidgets import Layout
 
 from hyp3_sdk import asf_search
 from hyp3_sdk import Batch
+
+import asf_search as asf
 
 #######################
 #  Utility Functions  #
@@ -202,41 +204,7 @@ def vrt_to_gtiff(vrt: str, output: str):
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
 
-
-#########################
-#  Vertex API Functions #
-#########################
-
-
-def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
-    """
-    Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
-    preconditions:
-    Requires AWS Vertex API authentification (already logged in).
-    Requires a valid granule name.
-    Granule and processing level must match.
-    """
-    assert type(granule_name) == str, 'Error: granule_name must be a string.'
-    assert type(processing_level) == str, 'Error: processing_level must be a string.'
-
-    vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try:
-        response = requests.post(
-            vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'),
-                    ('processingLevel', processing_level)]
-        )
-    except requests.exceptions.RequestException as e:  # This is the correct syntax
-        print(e)
-        sys.exit(1)
-    else:
-        if len(response.json()) > 0:
-            json_response = response.json()[0][0]
-            return json_response
-        else:
-            print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-
-
+    
 #########################
 #  Hyp3v2 API Functions #
 #########################
@@ -265,9 +233,9 @@ def filter_jobs_by_date(jobs, date_range):
 def get_paths_orbits(jobs):
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
-        granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
-        job.path = granule_metadata['path']
-        job.orbit_direction = granule_metadata['flightDirection']
+        granule_metadata = asf.granule_search(job.job_parameters['granules'])[0]
+        job.path = granule_metadata.properties['pathNumber']
+        job.orbit_direction = granule_metadata.properties['flightDirection']
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
