@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski, Rui Kawahara
-# Oct-11-2021
+# Oct-14-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -29,7 +29,6 @@ from IPython.display import display
 import ipywidgets as widgets
 from ipywidgets import Layout
 
-from hyp3_sdk import asf_search
 from hyp3_sdk import Batch
 
 import asf_search as asf
@@ -408,13 +407,13 @@ def select_parameter(things, description=""):
 
 
 
-def select_mult_parameters(things, description=""):
+def select_mult_parameters(things, description="", width='175px'):
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
         description=description,
         disabled=False,
-        layout=widgets.Layout(height=f"{height}px", width='175px')
+        layout=widgets.Layout(height=f"{height}px", width=width)
     )
 
 
