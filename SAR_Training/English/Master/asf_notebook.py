@@ -516,7 +516,7 @@ class LineSelector:
                                                              self)
         self.image = image
         self.plot = self.gray_plot(self.image, fig=self.fig, return_ax=True)
-        self.plot.set_title('Select a Point of Interest')
+        self.plot.set_title('Select 2 Points of Interest')
         
         
     def gray_plot(self, image, vmin=None, vmax=None, fig=None, return_ax=False):
