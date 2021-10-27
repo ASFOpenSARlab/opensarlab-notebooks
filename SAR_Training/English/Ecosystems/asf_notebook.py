@@ -561,3 +561,4 @@ class LineSelector:
                 self.pnt1 = pnt.get_xydata()
             elif i == 1:
                 self.pnt2 = pnt.get_xydata()
+                
