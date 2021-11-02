@@ -1,6 +1,6 @@
 # asf_notebook.py
-# Alex Lewandowski
-# 4-15-2021
+# Alex Lewandowski, Rui Kawahara
+# Oct-20-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -21,20 +21,18 @@ import pandas as pd
 
 from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 plt.rcParams.update({'font.size': 12})
 
-from IPython.display import clear_output
 from IPython.display import Markdown
 from IPython.display import display
 
 import ipywidgets as widgets
 from ipywidgets import Layout
 
-from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
-
-from hyp3_sdk import HyP3
-from hyp3_sdk import asf_search
 from hyp3_sdk import Batch
+
+import asf_search as asf
 
 #######################
 #  Utility Functions  #
@@ -206,174 +204,7 @@ def vrt_to_gtiff(vrt: str, output: str):
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
 
-#########################
-#  Earthdata Auth Class #
-#########################
-
-class EarthdataLogin:
-
-    def __init__(self, username=None, password=None):
-
-        """
-        takes user input to login to NASA Earthdata
-        updates .netrc with user credentials
-        returns an api object
-        note: Earthdata's EULA applies when accessing ASF APIs
-              Hyp3 API handles HTTPError and LoginError
-        """
-        err = None
-        while True:
-            if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
-                print(err)
-                print("Please Try again.\n")
-            if not username or not password:
-                print(f"Enter your NASA EarthData username:")
-                username = input()
-                print(f"Enter your password:")
-                password = getpass()
-            try:
-                api = API(username) # asf_hyp3 function
-            except Exception:
-                raise
-            else:
-                try:
-                    api.login(password)
-                except LoginError as e:
-                    err = e
-                    clear_output()
-                    username = None
-                    password = None
-                    continue
-                except Exception:
-                    raise
-                else:
-                    clear_output()
-                    print(f"Login successful.")
-                    print(f"Welcome {username}.")
-                    self.username = username
-                    self.password = password
-                    self.api = api
-                    break
-
-
-    def login(self):
-        try:
-            self.api.login(self.password)
-        except LoginError:
-            raise
-
-
-#########################
-#  Vertex API Functions #
-#########################
-
-
-def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
-    """
-    Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
-    preconditions:
-    Requires AWS Vertex API authentification (already logged in).
-    Requires a valid granule name.
-    Granule and processing level must match.
-    """
-    assert type(granule_name) == str, 'Error: granule_name must be a string.'
-    assert type(processing_level) == str, 'Error: processing_level must be a string.'
-
-    vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try:
-        response = requests.post(
-            vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'),
-                    ('processingLevel', processing_level)]
-        )
-    except requests.exceptions.RequestException as e:  # This is the correct syntax
-        print(e)
-        sys.exit(1)
-    else:
-        if len(response.json()) > 0:
-            json_response = response.json()[0][0]
-            return json_response
-        else:
-            print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-
-
-#########################
-#  Hyp3v1 API Functions #
-#########################
-
-
-def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
-    """
-    Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
-    Returns None if there are no enabled subscriptions associated with Hyp3 account.
-    """
-
-    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'
-
-    while True:
-        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
-        try:
-            if subscriptions['status'] == 'ERROR' and \
-                  subscriptions['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-        except (KeyError, TypeError):
-            break
-    subs = []
-    if not subscriptions:
-        if not group_id:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}")
-        else:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
-    else:
-        for sub in subscriptions:
-            subs.append(f"{sub['id']}: {sub['name']}")
-    return subs
-
-
-def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    products = []
-    page_count = 0
-    while True:
-        product_page = login.api.get_products(
-            sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
-        try:
-            if product_page['status'] == 'ERROR'and \
-                  product_page['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-                continue
-        except (KeyError, TypeError):
-            page_count += 1
-            pass
-        if not product_page:
-            break
-        for product in product_page:
-            products.append(product)
-    return products
-
-
-def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLogin) -> dict:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    jobs_list = login.api.get_jobs(sub_id=subscription_id)
-    granules = dict()
-    for job in jobs_list:
-        granules.update({job['granule']: job['id']})
-    return granules
-
-
-def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
-    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd
-
-
+    
 #########################
 #  Hyp3v2 API Functions #
 #########################
@@ -402,9 +233,9 @@ def filter_jobs_by_date(jobs, date_range):
 def get_paths_orbits(jobs):
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
-        granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
-        job.path = granule_metadata['path']
-        job.orbit_direction = granule_metadata['flightDirection']
+        granule_metadata = asf.granule_search(job.job_parameters['granules'])[0]
+        job.path = granule_metadata.properties['pathNumber']
+        job.orbit_direction = granule_metadata.properties['flightDirection']
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
@@ -577,26 +408,27 @@ def select_parameter(things, description=""):
 
 
 
-def select_mult_parameters(things, description=""):
+def select_mult_parameters(things, description="", width='175px'):
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
         description=description,
         disabled=False,
-        layout=widgets.Layout(height=f"{height}px", width='175px')
+        layout=widgets.Layout(height=f"{height}px", width=width)
     )
 
 
-########################################
+########################
 #  Subset AOI Selector #
-########################################
+########################
 
 class AOI_Selector:
     def __init__(self,
                  image,
                  fig_xsize=None, fig_ysize=None,
                  cmap=plt.cm.gist_gray,
-                 vmin=None, vmax=None
+                 vmin=None, vmax=None,
+                 drawtype='box'
                 ):
         display(Markdown(f"<text style=color:blue><b>Area of Interest Selector Tips:\n</b></text>"))
         display(Markdown(f'<text style=color:blue>- This plot uses "matplotlib notebook", whereas the other plots in this notebook use "matplotlib inline".</text>'))
@@ -642,9 +474,9 @@ class AOI_Selector:
                 toggle_selector.RS.set_active(True)
 
         toggle_selector.RS = RectangleSelector(self.current_ax, self.line_select_callback,
-                                               drawtype='box', useblit=True,
+                                               drawtype=drawtype, useblit=True,
                                                button=[1, 3],  # don't use middle button
-                                               minspanx=5, minspany=5,
+                                               minspanx=0, minspany=0,
                                                spancoords='pixels',
                                                rectprops = dict(facecolor='red', edgecolor = 'yellow',
                                                                 alpha=0.3, fill=True),
@@ -657,3 +489,76 @@ class AOI_Selector:
         self.x2, self.y2 = erelease.xdata, erelease.ydata
         print("(%3.2f, %3.2f) --> (%3.2f, %3.2f)" % (self.x1, self.y1, self.x2, self.y2))
         print(" The button you used were: %s %s" % (eclick.button, erelease.button))
+        
+
+##################
+#  Line Selector #
+##################     
+     
+        
+class LineSelector:
+    def __init__(self, image, width, height):
+        self.x1 = None
+        self.x2 = None
+        self.y1 = None
+        self.y2 = None
+        
+        self.pnt1 = None
+        self.pnt2 = None
+        
+        self.fig = plt.figure(figsize=(width, height))
+        self.ax = self.fig.add_subplot(111, visible=False)
+        self.rect = patches.Rectangle(
+            (0.0, 0.0), width, height, 
+            fill=False, clip_on=False, visible=False)
+        self.rect_patch = self.ax.add_patch(self.rect)
+        self.cid = self.rect_patch.figure.canvas.mpl_connect('button_press_event', 
+                                                             self)
+        self.image = image
+        self.plot = self.gray_plot(self.image, fig=self.fig, return_ax=True)
+        self.plot.set_title('Select 2 Points of Interest')
+        
+        
+    def gray_plot(self, image, vmin=None, vmax=None, fig=None, return_ax=False):
+        '''
+        Plots an image in grayscale.
+        Parameters:
+        - image: 2D array of raster values
+        - vmin: Minimum value for colormap
+        - vmax: Maximum value for colormap
+        - return_ax: Option to return plot axis
+        '''
+        if vmin is None:
+            vmin = np.nanpercentile(self.image, 1)
+        if vmax is None:
+            vmax = np.nanpercentile(self.image, 99)
+        ax = fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.imshow(image, cmap=plt.cm.gist_gray, vmin=vmin, vmax=vmax)
+        if return_ax:
+            return(ax)
+        
+    
+    def __call__(self, event):
+        self.x1 = event.xdata
+        self.y1 = event.ydata
+        
+        if len(self.plot.get_lines()) == 3:
+            self.plot.get_lines()[2].remove()
+            
+        plt.plot(self.x1, self.y1, 'ro')
+        
+        for i, pnt in enumerate(self.plot.get_lines()):
+            if len(self.plot.get_lines()) == 3 and i == 0:
+                pnt.remove()
+        
+        self.line_x = [pnt.get_xdata() for pnt in self.plot.get_lines()]
+        self.line_y = [pnt.get_ydata() for pnt in self.plot.get_lines()]
+        if len(self.plot.get_lines()) > 1:
+            plt.plot(self.line_x, self.line_y)
+        
+        for i, pnt in enumerate(self.plot.get_lines()):
+            if i == 0:
+                self.pnt1 = pnt.get_xydata()
+            elif i == 1:
+                self.pnt2 = pnt.get_xydata()
+                
