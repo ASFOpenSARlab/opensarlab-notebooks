@@ -204,7 +204,6 @@ def vrt_to_gtiff(vrt: str, output: str):
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
 
-    
 #########################
 #  Hyp3v2 API Functions #
 #########################
