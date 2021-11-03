@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh//danielbeny/asf-jupyter-notebooks/binder_SARHazards_Lab_Floods?filepath=SARHazards_Lab_Floods.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/danielbeny/asf-jupyter-notebooks/binder_SARHazards_Lab_Floods?filepath=SARHazards_Lab_Floods.ipynb)
 
 # ASF Jupyter Notebooks
 __Where python meets fun!!__
