@@ -491,9 +491,12 @@ def select_parameter(things, description=""):
 
 
 def select_mult_parameters(things, description="", width='175px'):
+<<<<<<< HEAD
     
     deprecation_warn()
     
+=======
+>>>>>>> 1a17930069274a1171e0033d2f9f89ebe9de6b76
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
@@ -652,3 +655,4 @@ class LineSelector:
                 self.pnt1 = pnt.get_xydata()
             elif i == 1:
                 self.pnt2 = pnt.get_xydata()
+

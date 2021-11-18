@@ -588,7 +588,7 @@ class LineSelector:
     def __init__(self, image, width, height):
         
         deprecation_warn()
-        
+
         self.x1 = None
         self.x2 = None
         self.y1 = None
@@ -652,3 +652,4 @@ class LineSelector:
                 self.pnt1 = pnt.get_xydata()
             elif i == 1:
                 self.pnt2 = pnt.get_xydata()
+
