@@ -1,6 +1,6 @@
 # asf_notebook.py
 # Alex Lewandowski, Rui Kawahara
-# Oct-20-2021
+# Nov-03-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
@@ -18,6 +18,7 @@ import subprocess
 from osgeo import gdal  # for Open
 import numpy as np
 import pandas as pd
+import warnings
 
 from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
@@ -34,6 +35,13 @@ from hyp3_sdk import Batch
 
 import asf_search as asf
 
+def deprecation_warn(stacklevel=4):
+    warnings.warn("asf_notebook is deprecated and has been replaced with opensarlab-lib", 
+                  DeprecationWarning, stacklevel=stacklevel)
+    
+deprecation_warn(3)
+
+
 #######################
 #  Utility Functions  #
 #######################
@@ -44,6 +52,9 @@ def path_exists(path: str) -> bool:
     Takes a string path, returns true if exists or
     prints error message and returns false if it doesn't.
     """
+    
+    deprecation_warn()
+    
     assert type(path) == str, 'Error: path must be a string'
 
     if os.path.exists(path):
@@ -58,6 +69,9 @@ def new_directory(path: str):
     Takes a path for a new or existing directory. Creates directory
     and sub-directories if not already present.
     """
+    
+    deprecation_warn()
+    
     assert type(path) == str
 
     if os.path.exists(path):
@@ -74,6 +88,11 @@ def asf_unzip(output_dir: str, file_path: str):
     Takes an output directory path and a file path to a zipped archive.
     If file is a valid zip, it extracts all to the output directory.
     """
+    
+    deprecation_warn()
+    warnings.warn("asf_notebook is deprecated and has been replaced with opensarlab-lib", 
+              DeprecationWarning, stacklevel=1)
+    
     ext = os.path.splitext(file_path)[1]
     assert type(output_dir) == str, 'Error: output_dir must be a string'
     assert type(file_path) == str, 'Error: file_path must be a string'
@@ -95,6 +114,9 @@ def get_power_set(my_set, set_size=None):
     set_size: deprecated, kept as optional for backwards compatibility
     returns: the power set of input strings
     """
+    
+    deprecation_warn()
+    
     p_set = set()
     if len(my_set) > 1:
         pow_set_size = 1 << len(my_set) # 2^n
@@ -119,6 +141,9 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: list):
     and a list of the tif filenames.
     Deletes any tifs containing only NaN values.
     """
+    
+    deprecation_warn()
+    
     assert type(tif_dir) == str, 'Error: tif_dir must be a string'
     assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
 
@@ -135,12 +160,18 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: list):
 
 
 def input_path(prompt):
+    
+    deprecation_warn()
+    
     print(f"Current working directory: {os.getcwd()}")
     print(prompt)
     return input()
 
 
 def handle_old_data(data_dir, contents):
+    
+    deprecation_warn()
+    
     print(f"\n********************** WARNING! **********************")
     print(f"The directory {data_dir} already exists and contains:")
     for item in contents:
@@ -169,6 +200,9 @@ def jupytertheme_matplotlib_format() -> bool:
     reformat matplotlib settings for improved dark mode visibility.
     Return True if matplotlib settings adjusted or False if not
     """
+    
+    deprecation_warn()
+    
     try:
         from jupyterthemes import jtplot
         print(f"jupytertheme style: {jtplot.infer_theme()}")
@@ -190,6 +224,9 @@ def jupytertheme_matplotlib_format() -> bool:
 ###################
 
 def vrt_to_gtiff(vrt: str, output: str):
+    
+    deprecation_warn()
+    
     if '.vrt' not in vrt:
         print('Error: The path to your vrt does not contain a ".vrt" extension.')
         return
@@ -210,9 +247,15 @@ def vrt_to_gtiff(vrt: str, output: str):
 #########################
 
 def get_RTC_projects(hyp3):
+    
+    deprecation_warn()
+    
     return hyp3.my_info()['job_names']
 
 def get_job_dates(jobs: List[str]) -> List[str]:
+    
+    deprecation_warn()
+    
     dates = set()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -220,6 +263,9 @@ def get_job_dates(jobs: List[str]) -> List[str]:
     return list(dates)
 
 def filter_jobs_by_date(jobs, date_range):
+    
+    deprecation_warn()
+    
     remaining_jobs = Batch()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -231,6 +277,9 @@ def filter_jobs_by_date(jobs, date_range):
     return remaining_jobs
 
 def get_paths_orbits(jobs):
+    
+    deprecation_warn()
+    
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
         granule_metadata = asf.granule_search(job.job_parameters['granules'])[0]
@@ -239,6 +288,9 @@ def get_paths_orbits(jobs):
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
+    
+    deprecation_warn()
+    
     if 'All Paths' in paths:
         return jobs
     remaining_jobs = Batch()
@@ -248,6 +300,9 @@ def filter_jobs_by_path(jobs, paths):
     return remaining_jobs
 
 def filter_jobs_by_orbit(jobs, orbit_direction):
+    
+    deprecation_warn()
+    
     remaining_jobs = Batch()
     for job in jobs:
         if job.orbit_direction == orbit_direction:
@@ -260,6 +315,9 @@ def filter_jobs_by_orbit(jobs, orbit_direction):
 #######################################
 
 def get_product_info(granules: dict, products_info: list, date_range: list) -> dict:
+    
+    deprecation_warn()
+    
     paths = []
     directions = []
     urls = []
@@ -299,6 +357,9 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
     return {'paths': paths, 'directions': directions, 'urls': urls}
 
 def date_from_product_name(product_name: str) -> str:
+    
+    deprecation_warn()
+    
     regex = "\w[0-9]{7}T[0-9]{6}"
     results = re.search(regex, product_name)
     if results:
@@ -307,6 +368,9 @@ def date_from_product_name(product_name: str) -> str:
         return None
 
 def get_products_dates(products_info: list) -> list:
+    
+    deprecation_warn()
+    
     dates = []
     for info in products_info:
         date_regex = "\w[0-9]{7}T[0-9]{6}"
@@ -321,6 +385,9 @@ def get_products_dates(products_info: list) -> list:
 # get_products_dates_insar will be deprecated in the
 # near future as it is now duplicted in get_products_dates
 def get_products_dates_insar(products_info: list) -> list:
+    
+    deprecation_warn()
+    
     dates = []
     for info in products_info:
         date_regex = "\w[0-9]{7}T[0-9]{6}"
@@ -339,6 +406,9 @@ def get_products_dates_insar(products_info: list) -> list:
 
 
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:
+    
+    deprecation_warn()
+    
     start_date = datetime.strptime(min(dates), '%Y%m%d')
     end_date = datetime.strptime(max(dates), '%Y%m%d')
     date_range = pd.date_range(start_date, end_date, freq='D')
@@ -361,6 +431,9 @@ def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> lis
     Parameters:
     - selection_range_slider: Handle of the interactive time slider
     '''
+    
+    deprecation_warn()
+    
     [a,b] = list(selection_range_slider.value)
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
@@ -372,6 +445,9 @@ def get_polarity_from_path(path: str) -> str:
     Takes a path to a HyP3 product containing its polarity in its filename
     Returns the polarity string or none if not found
     """
+    
+    deprecation_warn()
+    
     path = os.path.basename(path)
     regex = "(v|V|h|H){2}"
     return re.search(regex, path).group(0)
@@ -382,6 +458,9 @@ def get_RTC_polarizations(base_path: str) -> list:
     Takes a string path to a directory containing RTC product directories
     Returns a list of present polarizations
     """
+    
+    deprecation_warn()
+    
     assert type(base_path) == str, 'Error: base_path must be a string.'
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
     paths = []
@@ -399,6 +478,9 @@ def get_RTC_polarizations(base_path: str) -> list:
 
 
 def select_parameter(things, description=""):
+    
+    deprecation_warn()
+    
     return widgets.RadioButtons(
         options=things,
         description=description,
@@ -409,6 +491,12 @@ def select_parameter(things, description=""):
 
 
 def select_mult_parameters(things, description="", width='175px'):
+<<<<<<< HEAD
+    
+    deprecation_warn()
+    
+=======
+>>>>>>> 1a17930069274a1171e0033d2f9f89ebe9de6b76
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
@@ -430,6 +518,9 @@ class AOI_Selector:
                  vmin=None, vmax=None,
                  drawtype='box'
                 ):
+        
+        deprecation_warn()
+        
         display(Markdown(f"<text style=color:blue><b>Area of Interest Selector Tips:\n</b></text>"))
         display(Markdown(f'<text style=color:blue>- This plot uses "matplotlib notebook", whereas the other plots in this notebook use "matplotlib inline".</text>'))
         display(Markdown(f'<text style=color:blue>-  If you run this cell out of sequence and the plot is not interactive, rerun the "%matplotlib notebook" code cell.</text>'))
@@ -498,6 +589,9 @@ class AOI_Selector:
         
 class LineSelector:
     def __init__(self, image, width, height):
+        
+        deprecation_warn()
+        
         self.x1 = None
         self.x2 = None
         self.y1 = None
@@ -561,4 +655,4 @@ class LineSelector:
                 self.pnt1 = pnt.get_xydata()
             elif i == 1:
                 self.pnt2 = pnt.get_xydata()
-                
+
