@@ -1,13 +1,11 @@
 # asf_notebook.py
-# Alex Lewandowski
-# 2-18-21
+# Alex Lewandowski, Rui Kawahara
+# Nov-03-2021
 # Module of Alaska Satellite Facility OpenSARLab Jupyter Notebook helper functions
 
 
-import math
 import os  # for chdir, getcwd, path.exists
 import re
-import time  # for perf_counter
 from typing import List
 import requests  # for post, get
 from getpass import getpass  # used to input URS creds and add to .netrc
@@ -15,31 +13,34 @@ import zipfile  # for extractall, ZipFile, BadZipFile
 from datetime import datetime, date
 import glob
 import sys
-import urllib
 import subprocess
-import json
 
-import gdal  # for Open
+from osgeo import gdal  # for Open
 import numpy as np
 import pandas as pd
+import warnings
 
 from matplotlib.widgets import RectangleSelector
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 plt.rcParams.update({'font.size': 12})
 
-from IPython.utils.text import SList
-from IPython.display import clear_output
 from IPython.display import Markdown
 from IPython.display import display
 
 import ipywidgets as widgets
 from ipywidgets import Layout
 
-from asf_hyp3 import API, LoginError  # for get_products, get_subscriptions, login
+from hyp3_sdk import Batch
 
-# from hyp3_sdk import HyP3
-# from hyp3_sdk import asf_search
-# from hyp3_sdk import Batch
+import asf_search as asf
+
+def deprecation_warn(stacklevel=4):
+    warnings.warn("asf_notebook is deprecated and has been replaced with opensarlab-lib", 
+                  DeprecationWarning, stacklevel=stacklevel)
+    
+deprecation_warn(3)
+
 
 #######################
 #  Utility Functions  #
@@ -51,6 +52,9 @@ def path_exists(path: str) -> bool:
     Takes a string path, returns true if exists or
     prints error message and returns false if it doesn't.
     """
+    
+    deprecation_warn()
+    
     assert type(path) == str, 'Error: path must be a string'
 
     if os.path.exists(path):
@@ -65,6 +69,9 @@ def new_directory(path: str):
     Takes a path for a new or existing directory. Creates directory
     and sub-directories if not already present.
     """
+    
+    deprecation_warn()
+    
     assert type(path) == str
 
     if os.path.exists(path):
@@ -81,6 +88,11 @@ def asf_unzip(output_dir: str, file_path: str):
     Takes an output directory path and a file path to a zipped archive.
     If file is a valid zip, it extracts all to the output directory.
     """
+    
+    deprecation_warn()
+    warnings.warn("asf_notebook is deprecated and has been replaced with opensarlab-lib", 
+              DeprecationWarning, stacklevel=1)
+    
     ext = os.path.splitext(file_path)[1]
     assert type(output_dir) == str, 'Error: output_dir must be a string'
     assert type(file_path) == str, 'Error: file_path must be a string'
@@ -102,6 +114,9 @@ def get_power_set(my_set, set_size=None):
     set_size: deprecated, kept as optional for backwards compatibility
     returns: the power set of input strings
     """
+    
+    deprecation_warn()
+    
     p_set = set()
     if len(my_set) > 1:
         pow_set_size = 1 << len(my_set) # 2^n
@@ -126,6 +141,9 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: list):
     and a list of the tif filenames.
     Deletes any tifs containing only NaN values.
     """
+    
+    deprecation_warn()
+    
     assert type(tif_dir) == str, 'Error: tif_dir must be a string'
     assert len(file_names) > 0, 'Error: file_names must contain at least 1 file name'
 
@@ -142,12 +160,18 @@ def remove_nan_filled_tifs(tif_dir: str, file_names: list):
 
 
 def input_path(prompt):
+    
+    deprecation_warn()
+    
     print(f"Current working directory: {os.getcwd()}")
     print(prompt)
     return input()
 
 
 def handle_old_data(data_dir, contents):
+    
+    deprecation_warn()
+    
     print(f"\n********************** WARNING! **********************")
     print(f"The directory {data_dir} already exists and contains:")
     for item in contents:
@@ -176,6 +200,9 @@ def jupytertheme_matplotlib_format() -> bool:
     reformat matplotlib settings for improved dark mode visibility.
     Return True if matplotlib settings adjusted or False if not
     """
+    
+    deprecation_warn()
+    
     try:
         from jupyterthemes import jtplot
         print(f"jupytertheme style: {jtplot.infer_theme()}")
@@ -197,6 +224,9 @@ def jupytertheme_matplotlib_format() -> bool:
 ###################
 
 def vrt_to_gtiff(vrt: str, output: str):
+    
+    deprecation_warn()
+    
     if '.vrt' not in vrt:
         print('Error: The path to your vrt does not contain a ".vrt" extension.')
         return
@@ -211,200 +241,21 @@ def vrt_to_gtiff(vrt: str, output: str):
     sub = subprocess.run(cmd, stderr=subprocess.PIPE, shell=True)
     print(str(sub.stderr)[2: -3])
 
-#########################
-#  Earthdata Auth Class #
-#########################
-
-class EarthdataLogin:
-
-    def __init__(self, username=None, password=None):
-
-        """
-        takes user input to login to NASA Earthdata
-        updates .netrc with user credentials
-        returns an api object
-        note: Earthdata's EULA applies when accessing ASF APIs
-              Hyp3 API handles HTTPError and LoginError
-        """
-        err = None
-        while True:
-            if err: # Jupyter input handling requires printing login error here to maintain correct order of output.
-                print(err)
-                print("Please Try again.\n")
-            if not username or not password:
-                print(f"Enter your NASA EarthData username:")
-                username = input()
-                print(f"Enter your password:")
-                password = getpass()
-            try:
-                api = API(username) # asf_hyp3 function
-            except Exception:
-                raise
-            else:
-                try:
-                    api.login(password)
-                except LoginError as e:
-                    err = e
-                    clear_output()
-                    username = None
-                    password = None
-                    continue
-                except Exception:
-                    raise
-                else:
-                    clear_output()
-                    print(f"Login successful.")
-                    print(f"Welcome {username}.")
-                    self.username = username
-                    self.password = password
-                    self.api = api
-                    break
-
-
-    def login(self):
-        try:
-            self.api.login(self.password)
-        except LoginError:
-            raise
-
-
-#########################
-#  Vertex API Functions #
-#########################
-
-
-def get_vertex_granule_info(granule_name: str, processing_level: int) -> dict:
-    """
-    Takes a string granule name and int processing level, and returns the granule info as json.<br><br>
-    preconditions:
-    Requires AWS Vertex API authentification (already logged in).
-    Requires a valid granule name.
-    Granule and processing level must match.
-    """
-    assert type(granule_name) == str, 'Error: granule_name must be a string.'
-    assert type(processing_level) == str, 'Error: processing_level must be a string.'
-
-    vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
-    try:
-        response = requests.post(
-            vertex_API_URL,
-            params=[('granule_list', granule_name), ('output', 'json'),
-                    ('processingLevel', processing_level)]
-        )
-    except requests.exceptions.RequestException as e:  # This is the correct syntax
-        print(e)
-        sys.exit(1)
-    else:
-        if len(response.json()) > 0:
-            json_response = response.json()[0][0]
-            return json_response
-        else:
-            print("get_vertex_granule_info() failed.\ngranule/processing level mismatch.")
-
-
-#########################
-#  Hyp3v1 API Functions #
-#########################
-
-
-def get_hyp3_subscriptions(login: EarthdataLogin, group_id=None) -> dict:
-    """
-    Takes an EarthdataLogin object and returns a list of associated, enabled subscriptions
-    Returns None if there are no enabled subscriptions associated with Hyp3 account.
-    """
-
-    assert type(login) == EarthdataLogin, 'Error: login must be an EarthdataLogin object'
-
-    while True:
-        subscriptions = login.api.get_subscriptions(enabled=True, group_id=group_id)
-        try:
-            if subscriptions['status'] == 'ERROR' and \
-                  subscriptions['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-        except (KeyError, TypeError):
-            break
-    subs = []
-    if not subscriptions:
-        if not group_id:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}")
-        else:
-            print(f"Found no subscriptions for Hyp3 user: {login.username}, in group: {group_id}")
-    else:
-        for sub in subscriptions:
-            subs.append(f"{sub['id']}: {sub['name']}")
-    return subs
-
-
-def get_subscription_products_info(subscription_id: int, login: EarthdataLogin, group_id=None) -> list:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    products = []
-    page_count = 0
-    while True:
-        product_page = login.api.get_products(
-            sub_id=subscription_id, page=page_count, page_size=100, group_id=group_id)
-        try:
-            if product_page['status'] == 'ERROR'and \
-                  product_page['message'] == 'You must have a valid API key':
-                creds = login.api.reset_api_key()
-                login.api.api = creds['api_key']
-                continue
-        except (KeyError, TypeError):
-            page_count += 1
-            pass
-        if not product_page:
-            break
-        for product in product_page:
-            products.append(product)
-    return products
-
-
-def get_subscription_granule_names_ids(subscription_id: int, login: EarthdataLogin) -> dict:
-
-    assert type(subscription_id) == str, f'Error: subscription_id must be a string, not a {type(subscription_id)}'
-    assert type(login) == EarthdataLogin, f'Error: login must be an EarthdataLogin object, not a {type(login)}'
-
-    jobs_list = login.api.get_jobs(sub_id=subscription_id)
-    granules = dict()
-    for job in jobs_list:
-        granules.update({job['granule']: job['id']})
-    return granules
-
-
-def get_wget_cmd(url: str, login: EarthdataLogin) -> str:
-    cmd = f"wget -c -q --show-progress --http-user={login.username} --http-password={login.password} {url}"
-    return cmd
-
-
+    
 #########################
 #  Hyp3v2 API Functions #
 #########################
 
-def hyp3_auth():
-    from hyp3_sdk import HyP3
-    exception = None
-    while True:
-        if exception:
-            print(exception)
-            print("Please try again.")
-        username = input("Username: ")
-        password = getpass("Password: ")
-        try:
-            hyp3 = HyP3(username=username, password=password)
-            clear_output()
-            print("Authentication Successful")
-            return hyp3
-        except Exception as e:
-            exception = e
-            clear_output()
-
 def get_RTC_projects(hyp3):
+    
+    deprecation_warn()
+    
     return hyp3.my_info()['job_names']
 
 def get_job_dates(jobs: List[str]) -> List[str]:
+    
+    deprecation_warn()
+    
     dates = set()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -412,7 +263,9 @@ def get_job_dates(jobs: List[str]) -> List[str]:
     return list(dates)
 
 def filter_jobs_by_date(jobs, date_range):
-    from hyp3_sdk import Batch
+    
+    deprecation_warn()
+    
     remaining_jobs = Batch()
     for job in jobs:
         for granule in job.job_parameters['granules']:
@@ -424,17 +277,20 @@ def filter_jobs_by_date(jobs, date_range):
     return remaining_jobs
 
 def get_paths_orbits(jobs):
-    from hyp3_sdk import Batch
-    from hyp3_sdk import asf_search
+    
+    deprecation_warn()
+    
     vertex_API_URL = "https://api.daac.asf.alaska.edu/services/search/param"
     for job in jobs:
-        granule_metadata = asf_search.get_metadata(job.job_parameters['granules'][0])
-        job.path = granule_metadata['path']
-        job.orbit_direction = granule_metadata['flightDirection']
+        granule_metadata = asf.granule_search(job.job_parameters['granules'])[0]
+        job.path = granule_metadata.properties['pathNumber']
+        job.orbit_direction = granule_metadata.properties['flightDirection']
     return jobs
 
 def filter_jobs_by_path(jobs, paths):
-    from hyp3_sdk import Batch
+    
+    deprecation_warn()
+    
     if 'All Paths' in paths:
         return jobs
     remaining_jobs = Batch()
@@ -444,7 +300,9 @@ def filter_jobs_by_path(jobs, paths):
     return remaining_jobs
 
 def filter_jobs_by_orbit(jobs, orbit_direction):
-    from hyp3_sdk import Batch
+    
+    deprecation_warn()
+    
     remaining_jobs = Batch()
     for job in jobs:
         if job.orbit_direction == orbit_direction:
@@ -457,6 +315,9 @@ def filter_jobs_by_orbit(jobs, orbit_direction):
 #######################################
 
 def get_product_info(granules: dict, products_info: list, date_range: list) -> dict:
+    
+    deprecation_warn()
+    
     paths = []
     directions = []
     urls = []
@@ -496,6 +357,9 @@ def get_product_info(granules: dict, products_info: list, date_range: list) -> d
     return {'paths': paths, 'directions': directions, 'urls': urls}
 
 def date_from_product_name(product_name: str) -> str:
+    
+    deprecation_warn()
+    
     regex = "\w[0-9]{7}T[0-9]{6}"
     results = re.search(regex, product_name)
     if results:
@@ -504,6 +368,9 @@ def date_from_product_name(product_name: str) -> str:
         return None
 
 def get_products_dates(products_info: list) -> list:
+    
+    deprecation_warn()
+    
     dates = []
     for info in products_info:
         date_regex = "\w[0-9]{7}T[0-9]{6}"
@@ -518,6 +385,9 @@ def get_products_dates(products_info: list) -> list:
 # get_products_dates_insar will be deprecated in the
 # near future as it is now duplicted in get_products_dates
 def get_products_dates_insar(products_info: list) -> list:
+    
+    deprecation_warn()
+    
     dates = []
     for info in products_info:
         date_regex = "\w[0-9]{7}T[0-9]{6}"
@@ -536,6 +406,9 @@ def get_products_dates_insar(products_info: list) -> list:
 
 
 def gui_date_picker(dates: list) -> widgets.SelectionRangeSlider:
+    
+    deprecation_warn()
+    
     start_date = datetime.strptime(min(dates), '%Y%m%d')
     end_date = datetime.strptime(max(dates), '%Y%m%d')
     date_range = pd.date_range(start_date, end_date, freq='D')
@@ -558,6 +431,9 @@ def get_slider_vals(selection_range_slider: widgets.SelectionRangeSlider) -> lis
     Parameters:
     - selection_range_slider: Handle of the interactive time slider
     '''
+    
+    deprecation_warn()
+    
     [a,b] = list(selection_range_slider.value)
     slider_min = a.to_pydatetime()
     slider_max = b.to_pydatetime()
@@ -569,6 +445,9 @@ def get_polarity_from_path(path: str) -> str:
     Takes a path to a HyP3 product containing its polarity in its filename
     Returns the polarity string or none if not found
     """
+    
+    deprecation_warn()
+    
     path = os.path.basename(path)
     regex = "(v|V|h|H){2}"
     return re.search(regex, path).group(0)
@@ -579,6 +458,9 @@ def get_RTC_polarizations(base_path: str) -> list:
     Takes a string path to a directory containing RTC product directories
     Returns a list of present polarizations
     """
+    
+    deprecation_warn()
+    
     assert type(base_path) == str, 'Error: base_path must be a string.'
     assert os.path.exists(base_path), f"Error: select_RTC_polarization was passed an invalid base_path, {base_path}"
     paths = []
@@ -596,6 +478,9 @@ def get_RTC_polarizations(base_path: str) -> list:
 
 
 def select_parameter(things, description=""):
+    
+    deprecation_warn()
+    
     return widgets.RadioButtons(
         options=things,
         description=description,
@@ -605,27 +490,34 @@ def select_parameter(things, description=""):
 
 
 
-def select_mult_parameters(things, description=""):
+def select_mult_parameters(things, description="", width='175px'):
+    
+    deprecation_warn()
+    
     height = len(things) * 19
     return widgets.SelectMultiple(
         options=things,
         description=description,
         disabled=False,
-        layout=widgets.Layout(height=f"{height}px", width='175px')
+        layout=widgets.Layout(height=f"{height}px", width=width)
     )
 
 
-########################################
+########################
 #  Subset AOI Selector #
-########################################
+########################
 
 class AOI_Selector:
     def __init__(self,
                  image,
                  fig_xsize=None, fig_ysize=None,
                  cmap=plt.cm.gist_gray,
-                 vmin=None, vmax=None
+                 vmin=None, vmax=None,
+                 drawtype='box'
                 ):
+        
+        deprecation_warn()
+        
         display(Markdown(f"<text style=color:blue><b>Area of Interest Selector Tips:\n</b></text>"))
         display(Markdown(f'<text style=color:blue>- This plot uses "matplotlib notebook", whereas the other plots in this notebook use "matplotlib inline".</text>'))
         display(Markdown(f'<text style=color:blue>-  If you run this cell out of sequence and the plot is not interactive, rerun the "%matplotlib notebook" code cell.</text>'))
@@ -670,9 +562,9 @@ class AOI_Selector:
                 toggle_selector.RS.set_active(True)
 
         toggle_selector.RS = RectangleSelector(self.current_ax, self.line_select_callback,
-                                               drawtype='box', useblit=True,
+                                               drawtype=drawtype, useblit=True,
                                                button=[1, 3],  # don't use middle button
-                                               minspanx=5, minspany=5,
+                                               minspanx=0, minspany=0,
                                                spancoords='pixels',
                                                rectprops = dict(facecolor='red', edgecolor = 'yellow',
                                                                 alpha=0.3, fill=True),
@@ -685,3 +577,79 @@ class AOI_Selector:
         self.x2, self.y2 = erelease.xdata, erelease.ydata
         print("(%3.2f, %3.2f) --> (%3.2f, %3.2f)" % (self.x1, self.y1, self.x2, self.y2))
         print(" The button you used were: %s %s" % (eclick.button, erelease.button))
+        
+
+##################
+#  Line Selector #
+##################     
+     
+        
+class LineSelector:
+    def __init__(self, image, width, height):
+        
+        deprecation_warn()
+
+        self.x1 = None
+        self.x2 = None
+        self.y1 = None
+        self.y2 = None
+        
+        self.pnt1 = None
+        self.pnt2 = None
+        
+        self.fig = plt.figure(figsize=(width, height))
+        self.ax = self.fig.add_subplot(111, visible=False)
+        self.rect = patches.Rectangle(
+            (0.0, 0.0), width, height, 
+            fill=False, clip_on=False, visible=False)
+        self.rect_patch = self.ax.add_patch(self.rect)
+        self.cid = self.rect_patch.figure.canvas.mpl_connect('button_press_event', 
+                                                             self)
+        self.image = image
+        self.plot = self.gray_plot(self.image, fig=self.fig, return_ax=True)
+        self.plot.set_title('Select 2 Points of Interest')
+        
+        
+    def gray_plot(self, image, vmin=None, vmax=None, fig=None, return_ax=False):
+        '''
+        Plots an image in grayscale.
+        Parameters:
+        - image: 2D array of raster values
+        - vmin: Minimum value for colormap
+        - vmax: Maximum value for colormap
+        - return_ax: Option to return plot axis
+        '''
+        if vmin is None:
+            vmin = np.nanpercentile(self.image, 1)
+        if vmax is None:
+            vmax = np.nanpercentile(self.image, 99)
+        ax = fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.imshow(image, cmap=plt.cm.gist_gray, vmin=vmin, vmax=vmax)
+        if return_ax:
+            return(ax)
+        
+    
+    def __call__(self, event):
+        self.x1 = event.xdata
+        self.y1 = event.ydata
+        
+        if len(self.plot.get_lines()) == 3:
+            self.plot.get_lines()[2].remove()
+            
+        plt.plot(self.x1, self.y1, 'ro')
+        
+        for i, pnt in enumerate(self.plot.get_lines()):
+            if len(self.plot.get_lines()) == 3 and i == 0:
+                pnt.remove()
+        
+        self.line_x = [pnt.get_xdata() for pnt in self.plot.get_lines()]
+        self.line_y = [pnt.get_ydata() for pnt in self.plot.get_lines()]
+        if len(self.plot.get_lines()) > 1:
+            plt.plot(self.line_x, self.line_y)
+        
+        for i, pnt in enumerate(self.plot.get_lines()):
+            if i == 0:
+                self.pnt1 = pnt.get_xydata()
+            elif i == 1:
+                self.pnt2 = pnt.get_xydata()
+
