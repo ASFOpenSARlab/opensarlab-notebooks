@@ -30,6 +30,7 @@ dependencies:
   - scikit-learn
   - scipy
   - pip:
+      - h5py<3
       - awscli
       - mintpy
-      - h5py<3
+
