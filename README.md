@@ -1,5 +1,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/binder_SARHazards_Lab_Landslides?filepath=SARHazards_Lab_Landslides.ipynb)
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/asfadmin/asf-jupyter-notebooks/landslides_binder_update?filepath=SARHazards_Lab_Landslides.ipynb)
+
 # ASF Jupyter Notebooks
 __Where python meets fun!!__
 
@@ -16,7 +18,7 @@ Many of the notebooks contained in this repo are built to be ran on notebook ser
 The following is a non-exhaustive list of installed commonly used python and non-python packages.
 
 Python Tools
-- python 3.7
+- python>=3.7
 - numpy 
 - matplotlib
 - scikit-fuzzy
@@ -24,3 +26,4 @@ Python Tools
 - gdal
 - pyproj
 - rasterio 
+- mintpy
