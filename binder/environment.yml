@@ -19,7 +19,6 @@ dependencies:
   - dask-jobqueue>=0.3
   - defusedxml
   - ecCodes
-  - h5py
   - lxml
   - netcdf4
   - openmp
@@ -33,3 +32,4 @@ dependencies:
   - pip:
       - awscli
       - mintpy
+      - h5py<3
