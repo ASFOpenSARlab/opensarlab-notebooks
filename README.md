@@ -16,7 +16,7 @@ Many of the notebooks contained in this repo are built to be ran on notebook ser
 The following is a non-exhaustive list of installed commonly used python and non-python packages.
 
 Python Tools
-- python 3.7
+- python>=3.6,<3.9
 - numpy 
 - matplotlib
 - scikit-fuzzy
@@ -24,3 +24,4 @@ Python Tools
 - gdal
 - pyproj
 - rasterio 
+- mintpy
