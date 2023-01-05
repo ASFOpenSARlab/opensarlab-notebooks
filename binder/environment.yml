@@ -4,33 +4,11 @@ channels:
   - defaults
 dependencies:
   - python>=3.6,<3.9
-  - pip
-  - numpy
-  - matplotlib
-  - gdal
-  - pandas
-  - rasterio
-  - scikit-fuzzy
-  - pyproj
-  - cartopy
-  - cdsapi
-  - cvxopt
-  - dask>=1.0
-  - dask-jobqueue>=0.3
-  - defusedxml
-  - ecCodes
-  - lxml
-  - netcdf4
-  - openmp
-  - pygrib
-  - pyhdf
-  - pykdtree
-  - pyresample
-  - scikit-image
-  - scikit-learn
-  - scipy
-  - pip:
-      - h5py<3
-      - awscli
-      - mintpy
-
+  - mintpy
+  - numpy<1.24.0
+  - jupyterlab
+  - ipywidgets<8.0.0
+  - ipympl
+  - kernda
+  - traitlets==5.1.1
+  
