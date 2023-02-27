@@ -1,18 +1,17 @@
-name: asf-jupyter-notebook
+name: veg
 channels:
   - conda-forge
 dependencies:
   - python
-  - pip
-  - numpy
-  - matplotlib
   - gdal
-  - pandas
-  - rasterio
-  - scikit-fuzzy
-  - scikit-image
-  - pyproj=2.6.1.post1
-  - nodejs
   - ipympl
+  - ipywidgets<8.0.0
+  - matplotlib<3.7.0
+  - numpy
+  - opensarlab_lib  
+  - pandas  
+  - pip
+  - scikit-image
+  - traitlets==5.1.1
   - pip:
       - awscli
