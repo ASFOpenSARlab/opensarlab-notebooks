@@ -1,5 +1,3 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ASFOpenSARlab/opensarlab-notebooks/binder_forest_veg_index?labpath=edX_mRFDIvsNDVI.ipynb)
-
 # ASF Jupyter Notebooks
 
 Jupyter notebooks provide an easy way to play with data recipes and visualize data. They also provide a low-barrier entry point into general Python development. [See official documentation](https://jupyter.org/) for more info about the overlying technology used.
