@@ -1,0 +1,37 @@
+name: notebook
+channels:
+  - conda-forge
+dependencies:
+  - asf_search
+  - gdal  
+  - geopandas
+  - hyp3_sdk
+  - ipyfilechooser
+  - ipympl
+  - jupyterlab
+  - ipywidgets<8.0.0
+  - kernda
+  - matplotlib<3.7.0
+  - mgrs
+  - netcdf4
+  - numpy
+  - opensarlab_lib
+  - pandas
+  - pip
+  - plotly
+  - pycrs
+  - pyproj
+  - python=3.9
+  - rasterio
+  - rioxarray
+  - s3fs
+  - scikit-image
+  - scipy
+  - shapely
+  - statsmodels
+  - traitlets==5.1.1
+  - xarray
+  - zarr
+  - pip:
+    - mpldatacursor
+    - url-widget
