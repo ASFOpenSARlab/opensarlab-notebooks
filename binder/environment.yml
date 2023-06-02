@@ -35,3 +35,4 @@ dependencies:
   - pip:
     - mpldatacursor
     - url-widget
+    - awscli==1.18.156
