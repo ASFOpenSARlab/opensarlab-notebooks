@@ -1,0 +1,40 @@
+name: notebook
+channels:
+  - conda-forge
+dependencies:
+  - affine
+  - asf_search
+  - astropy
+  - earthengine-api
+  - gdal
+  - geoglows
+  - geopandas
+  - geoviews
+  - google-api-python-client
+  - hvplot
+  - hyp3_sdk
+  - ipyfilechooser
+  - ipympl
+  - jupyterlab
+  - ipywidgets<8.0.0
+  - kernda
+  - matplotlib<3.7.0
+  - mgrs
+  - numpy
+  - oauth2client
+  - opensarlab_lib
+  - pandas
+  - pip
+  - pykrige
+  - pyproj
+  - pysheds
+  - python>=3.9
+  - rasterio
+  - rioxarray
+  - scikit-fuzzy
+  - scipy
+  - shapely
+  - traitlets==5.1.1
+  - pip:
+    - fiona
+    - url-widget
