@@ -28,7 +28,6 @@ dependencies:
   - pykrige
   - pyproj
   - pysheds
-  - python>=3.9
   - rasterio
   - rioxarray
   - scikit-fuzzy
