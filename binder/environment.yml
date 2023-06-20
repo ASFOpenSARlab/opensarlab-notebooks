@@ -33,7 +33,6 @@ dependencies:
   - scikit-fuzzy
   - scipy
   - shapely
-  - traitlets==5.1.1
   - pip:
     - awscli==1.27.79
     - fiona
