@@ -29,3 +29,4 @@ dependencies:
   - pip:
     - learn2map
     - oocprocess
+    - awscli==1.18.156
