@@ -1,38 +1,31 @@
-name: notebook
+name: eco_atbd
 channels:
+  # - udst
   - conda-forge
 dependencies:
-  - asf_search
-  - gdal  
-  - geopandas
-  - hyp3_sdk
-  - ipyfilechooser
-  - ipympl
-  - jupyterlab
-  - ipywidgets<8.0.0
-  - kernda
-  - matplotlib<3.7.0
-  - mgrs
-  - netcdf4
-  - numpy
-  - opensarlab_lib
-  - pandas
-  - pip
-  - plotly
-  - pycrs
-  - pyproj
-  - python=3.9
-  - rasterio
-  - rioxarray
-  - s3fs
-  - scikit-image
-  - scipy
+  - hvplot
+  - fiona
+  - scikit-learn
   - shapely
-  - statsmodels
-  - traitlets==5.1.1
+  - cartopy
+  - georaster
+  - geopandas
+  - gdal
+  - jupyter
+  - rasterio
+  - xarray<0.18.2
+  - rioxarray
+  - numpy
   - xarray
-  - zarr
+  - georasters
+  - fsspec
+  - wget
+  - pywget
+  - plotly
+  - pip
+  - ipywidgets<8.0.0
+  # - urbanaccess
+  # - pandana
   - pip:
-    - mpldatacursor
-    - url-widget
-    - awscli==1.18.156
+    - learn2map
+    - oocprocess
