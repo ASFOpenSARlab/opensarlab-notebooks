@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ASFOpenSARlab/opensarlab-notebooks/binder_SAREco_ChangeDetectMethods?labpath=SAREco_ChangeDetectMethods.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ASFOpenSARlab/opensarlab-notebooks/binder_SAREco_Biomass?labpath=Biomass.ipynb)
 
 # ASF Jupyter Notebooks
 
