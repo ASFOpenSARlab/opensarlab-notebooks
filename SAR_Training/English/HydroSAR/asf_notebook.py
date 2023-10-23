@@ -16,6 +16,7 @@ import sys
 import subprocess
 
 from osgeo import gdal  # for Open
+gdal.UseExceptions()
 import numpy as np
 import pandas as pd
 import warnings
